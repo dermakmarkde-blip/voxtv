@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>My Box TV</title>
+    <link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/4/45/COMPANY%281%29.png">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #070707;
+            color: #fff;
+            font-family: 'Arial', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .logo {
+            width: 90px;
+            border-radius: 16px;
+            margin-bottom: 24px;
+            box-shadow: 0 0 30px rgba(229,9,20,0.5);
+            animation: logoPulse 2s ease-in-out infinite;
+        }
+        @keyframes logoPulse {
+            0%,100% { box-shadow: 0 0 20px rgba(229,9,20,0.4); }
+            50%      { box-shadow: 0 0 50px rgba(229,9,20,0.8); }
+        }
+        .title {
+            font-size: 22px;
+            font-weight: 900;
+            letter-spacing: 4px;
+            color: #fff;
+            margin-bottom: 6px;
+        }
+        .subtitle {
+            font-size: 11px;
+            color: #444;
+            letter-spacing: 3px;
+            margin-bottom: 40px;
+        }
+        .loader-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+        }
+        .spinner {
+            width: 48px; height: 48px;
+            border: 3px solid #1a1a1a;
+            border-top-color: #e50914;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #status-msg {
+            font-size: 12px;
+            color: #555;
+            letter-spacing: 1px;
+            text-align: center;
+            max-width: 260px;
+            line-height: 1.6;
+            min-height: 40px;
+        }
+        .progress-bar-wrap {
+            width: 220px;
+            height: 3px;
+            background: #1a1a1a;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #e50914, #ff4444);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+        #version-badge {
+            position: fixed;
+            bottom: 16px;
+            right: 16px;
+            font-size: 9px;
+            color: #222;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+
+<img src="https://upload.wikimedia.org/wikipedia/commons/4/45/COMPANY%281%29.png" class="logo" alt="My Box TV">
+<div class="title">MY BOX TV</div>
+<div class="subtitle">CHARGEMENT EN COURS</div>
+
+<div class="loader-wrap">
+    <div class="spinner"></div>
+    <div id="status-msg">Vérification des mises à jour...</div>
+    <div class="progress-bar-wrap">
+        <div class="progress-bar" id="progress-bar"></div>
+    </div>
+</div>
+
+<div id="version-badge">v<span id="v-display">—</span></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONFIGURATION — même Supabase que l'app
+// ═══════════════════════════════════════════════════════
+const SUPABASE_URL = "https://jkcityzwqvlppwasqsru.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImprY2l0eXp3cXZscHB3YXNxc3J1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMTg1NDIsImV4cCI6MjA5MDg5NDU0Mn0.N2cxY-9SOKGqDQV4eTGz_Tdxa9zg3e5gQ1t79SMsS-U";
+
+// Clé de stockage dans localStorage
+const STORE_KEY     = 'myboxtv_app_code';
+const STORE_VERSION = 'myboxtv_app_version';
+
+// ═══════════════════════════════════════════════════════
+// UTILITAIRES
+// ═══════════════════════════════════════════════════════
+function setStatus(msg) {
+    document.getElementById('status-msg').innerText = msg;
+}
+function setProgress(pct) {
+    document.getElementById('progress-bar').style.width = Math.min(100, pct) + '%';
+}
+
+async function sbGet(table, params) {
+    try {
+        const q   = params ? '?' + params : '';
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${q}`, {
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Authorization': 'Bearer ' + SUPABASE_KEY
+            }
+        });
+        if (!res.ok) return null;
+        return await res.json();
+    } catch(e) { return null; }
+}
+
+// ═══════════════════════════════════════════════════════
+// LANCER L'APPLICATION
+// ═══════════════════════════════════════════════════════
+function launchApp(code) {
+    setStatus('Lancement...');
+    setProgress(100);
+
+    setTimeout(() => {
+        const iframe = document.createElement('iframe');
+        iframe.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:none;z-index:99999;';
+        iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-downloads allow-top-navigation');
+        document.body.appendChild(iframe);
+
+        // srcdoc = même origine que la page parente → fetch Supabase fonctionne, clics fonctionnent
+        iframe.srcdoc = code;
+
+        iframe.onload = () => {
+            document.querySelector('.logo')        && (document.querySelector('.logo').style.display        = 'none');
+            document.querySelector('.title')       && (document.querySelector('.title').style.display       = 'none');
+            document.querySelector('.subtitle')    && (document.querySelector('.subtitle').style.display    = 'none');
+            document.querySelector('.loader-wrap') && (document.querySelector('.loader-wrap').style.display = 'none');
+            document.getElementById('version-badge') && (document.getElementById('version-badge').style.display = 'none');
+            document.body.style.background = '#000';
+        };
+    }, 150);
+}
+
+// ═══════════════════════════════════════════════════════
+// DÉMARRAGE
+// ═══════════════════════════════════════════════════════
+async function boot() {
+    const localVersion = localStorage.getItem(STORE_VERSION) || '0';
+    const localCode    = localStorage.getItem(STORE_KEY);
+
+    setProgress(10);
+    setStatus('Vérification des mises à jour...');
+
+    // ── 1. Vérifier la version disponible sur Supabase ──
+    let remoteVersion = null;
+    let remoteCode    = null;
+
+    const data = await sbGet('app_updates', 'select=version,code&order=version.desc&limit=1');
+
+    setProgress(30);
+
+    if (data && data.length > 0) {
+        remoteVersion = String(data[0].version);
+        document.getElementById('v-display').innerText = remoteVersion;
+    }
+
+    // ── 2. Comparer les versions ──
+    const needUpdate = remoteVersion && (remoteVersion !== localVersion);
+
+    if (needUpdate) {
+        // ── MISE À JOUR DISPONIBLE ──
+        setStatus('Nouvelle version ' + remoteVersion + ' disponible !\nTéléchargement...');
+        setProgress(50);
+
+        remoteCode = data[0].code;
+
+        if (remoteCode && remoteCode.length > 100) {
+            setProgress(80);
+            setStatus('Installation de la mise à jour...');
+
+            // Sauvegarder le nouveau code
+            localStorage.setItem(STORE_KEY,     remoteCode);
+            localStorage.setItem(STORE_VERSION, remoteVersion);
+
+            setProgress(95);
+            setStatus('Mise à jour installée ✓');
+
+            setTimeout(() => launchApp(remoteCode), 600);
+        } else {
+            // Code vide ou invalide → utiliser l'ancien si disponible
+            console.warn('[Updater] Code distant invalide, utilisation du cache');
+            if (localCode) {
+                setStatus('Utilisation de la version locale...');
+                launchApp(localCode);
+            } else {
+                setStatus('Erreur : aucune version disponible.\nVérifiez votre connexion.');
+                setProgress(0);
+            }
+        }
+
+    } else if (localCode) {
+        // ── PAS DE MISE À JOUR — lancer la version locale ──
+        document.getElementById('v-display').innerText = localVersion;
+        setStatus('Version ' + localVersion + ' à jour ✓');
+        setProgress(90);
+        setTimeout(() => launchApp(localCode), 400);
+
+    } else {
+        // ── AUCUNE VERSION LOCALE ET PAS DE CONNEXION ──
+        setStatus('Aucune version disponible.\nConnectez-vous à Internet\npour le premier chargement.');
+        setProgress(0);
+
+        // Retry automatique toutes les 5s
+        setTimeout(boot, 5000);
+    }
+}
+
+// Lancement
+boot();
+</script>
+</body>
+</html>
