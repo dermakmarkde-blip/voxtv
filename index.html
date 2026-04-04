@@ -7,172 +7,368 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>Vox TV</title>
     <link rel="icon" href="voxtv.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: #0D0D0D;
-            color: #FFFFFF;
-            font-family: 'Arial', sans-serif;
-            height: 100vh;
+        :root {
+            --bg:     #0D0D0D;
+            --red:    #E50914;
+            --red2:   #ff2233;
+            --white:  #FFFFFF;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+
+        html, body {
+            width:100%; height:100vh;
+            background: var(--bg);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Rajdhani', sans-serif;
+            color: var(--white);
+        }
+
+        /* ═══ ANIMATED BG GRID ═══ */
+        .grid-bg {
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(229,9,20,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(229,9,20,0.04) 1px, transparent 1px);
+            background-size: 48px 48px;
+            animation: gridShift 20s linear infinite;
+            z-index: 0;
+        }
+        @keyframes gridShift {
+            from { background-position: 0 0; }
+            to   { background-position: 48px 48px; }
+        }
+
+        /* ═══ CENTER GLOW ═══ */
+        .glow-core {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -55%);
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(ellipse, rgba(229,9,20,0.13) 0%, transparent 72%);
+            animation: glowPulse 3.5s ease-in-out infinite;
+            z-index: 0;
+            pointer-events: none;
+        }
+        @keyframes glowPulse {
+            0%,100% { opacity:.7; transform:translate(-50%,-55%) scale(1); }
+            50%      { opacity:1;  transform:translate(-50%,-55%) scale(1.2); }
+        }
+
+        /* ═══ HORIZONTAL SCAN LINE ═══ */
+        .scan-line {
+            position: fixed;
+            left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent 0%, rgba(229,9,20,0.6) 30%, rgba(229,9,20,0.9) 50%, rgba(229,9,20,0.6) 70%, transparent 100%);
+            animation: scan 5s ease-in-out infinite;
+            z-index: 1;
+            pointer-events: none;
+        }
+        @keyframes scan {
+            0%   { top: 0%;   opacity:0; }
+            5%   { opacity:1; }
+            95%  { opacity:1; }
+            100% { top: 100%; opacity:0; }
+        }
+
+        /* ═══ CONTENT ═══ */
+        .wrapper {
+            position: relative;
+            z-index: 2;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            overflow: hidden;
         }
-        .logo {
-            width: 90px;
-            border-radius: 16px;
-            margin-bottom: 24px;
-            box-shadow: 0 0 30px rgba(229,9,20,0.5);
-            animation: logoPulse 2s ease-in-out infinite;
+
+        /* ═══ LOGO IMAGE ═══ */
+        .logo-frame {
+            position: relative;
+            margin-bottom: 32px;
         }
-        @keyframes logoPulse {
-            0%,100% { box-shadow: 0 0 20px rgba(229,9,20,0.4); }
-            50%      { box-shadow: 0 0 50px rgba(229,9,20,0.8); }
+
+        .logo-frame::before {
+            content: '';
+            position: absolute;
+            inset: -10px;
+            border-radius: 24px;
+            border: 1px solid rgba(229,9,20,0.3);
+            animation: borderPulse 2.5s ease-in-out infinite;
         }
-        .title {
-            font-size: 22px;
+
+        .logo-frame::after {
+            content: '';
+            position: absolute;
+            inset: -20px;
+            border-radius: 30px;
+            border: 1px solid rgba(229,9,20,0.1);
+            animation: borderPulse 2.5s ease-in-out infinite 0.5s;
+        }
+
+        @keyframes borderPulse {
+            0%,100% { opacity:.3; }
+            50%      { opacity:1; }
+        }
+
+        .logo-img {
+            width: 106px;
+            height: 106px;
+            object-fit: contain;
+            border-radius: 20px;
+            display: block;
+            filter: drop-shadow(0 0 28px rgba(229,9,20,0.75));
+            animation: logoFloat 4s ease-in-out infinite;
+        }
+
+        @keyframes logoFloat {
+            0%,100% { transform: translateY(0);    filter: drop-shadow(0 0 22px rgba(229,9,20,0.65)); }
+            50%      { transform: translateY(-6px); filter: drop-shadow(0 0 44px rgba(229,9,20,1)); }
+        }
+
+        /* ═══ BRAND NAME ═══ */
+        .brand {
+            font-family: 'Orbitron', sans-serif;
             font-weight: 900;
-            letter-spacing: 4px;
-            color: #FFFFFF;
+            font-size: 34px;
+            letter-spacing: 14px;
+            color: var(--white);
             margin-bottom: 6px;
+            animation: textGlow 3s ease-in-out infinite;
         }
-        .subtitle {
-            font-size: 11px;
-            color: #444;
+
+        .brand em {
+            font-style: normal;
+            color: var(--red);
+        }
+
+        @keyframes textGlow {
+            0%,100% { text-shadow: 0 0 18px rgba(229,9,20,0.3); }
+            50%      { text-shadow: 0 0 50px rgba(229,9,20,0.7), 0 0 90px rgba(229,9,20,0.25); }
+        }
+
+        /* ═══ RED DIVIDER ═══ */
+        .divider {
+            height: 1.5px;
+            background: linear-gradient(90deg, transparent, var(--red), transparent);
+            margin: 10px auto 12px;
+            animation: dividerPulse 2.5s ease-in-out infinite;
+        }
+        @keyframes dividerPulse {
+            0%,100% { width:50px; opacity:.5; }
+            50%      { width:100px; opacity:1; }
+        }
+
+        .tagline {
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 300;
+            font-size: 9.5px;
             letter-spacing: 3px;
-            margin-bottom: 40px;
+            color: #4a4a4a;
+            text-transform: uppercase;
+            margin-bottom: 52px;
         }
+
+        /* ═══ LOADER ═══ */
         .loader-wrap {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 14px;
+            gap: 18px;
         }
-        .spinner {
-            width: 48px; height: 48px;
-            border: 3px solid #1a1a1a;
-            border-top-color: #E50914;
+
+        .ring-spinner {
+            position: relative;
+            width: 58px;
+            height: 58px;
+        }
+
+        .ring-spinner span {
+            position: absolute;
             border-radius: 50%;
-            animation: spin 0.8s linear infinite;
+            border: 2px solid transparent;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .ring-spinner span:nth-child(1) {
+            inset: 0;
+            border-top-color: var(--red);
+            animation: spin 1s linear infinite;
+        }
+
+        .ring-spinner span:nth-child(2) {
+            inset: 9px;
+            border-right-color: rgba(229,9,20,0.5);
+            animation: spin 0.7s linear infinite reverse;
+        }
+
+        .ring-spinner span:nth-child(3) {
+            inset: 19px;
+            border-bottom-color: rgba(229,9,20,0.25);
+            animation: spin 1.5s linear infinite;
+        }
+
+        .ring-dot {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%,-50%);
+            width: 8px; height: 8px;
+            background: var(--red);
+            border-radius: 50%;
+            box-shadow: 0 0 12px var(--red);
+            animation: dotBeat 1s ease-in-out infinite;
+        }
+
+        @keyframes spin    { to { transform: rotate(360deg); } }
+        @keyframes dotBeat {
+            0%,100% { transform:translate(-50%,-50%) scale(1); opacity:1; }
+            50%      { transform:translate(-50%,-50%) scale(0.45); opacity:.3; }
+        }
+
         #status-msg {
-            font-size: 12px;
-            color: #555;
-            letter-spacing: 1px;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 11.5px;
+            font-weight: 400;
+            letter-spacing: 2.5px;
+            color: #444;
             text-align: center;
-            max-width: 260px;
-            line-height: 1.6;
-            min-height: 40px;
+            max-width: 250px;
+            line-height: 1.8;
+            min-height: 44px;
+            text-transform: uppercase;
         }
-        .progress-bar-wrap {
-            width: 220px;
-            height: 3px;
-            background: #1a1a1a;
-            border-radius: 3px;
+
+        .bar-wrap {
+            width: 200px;
+            height: 2px;
+            background: #1c1c1c;
+            border-radius: 2px;
             overflow: hidden;
-            margin-top: 4px;
         }
-        .progress-bar {
+
+        .bar-fill {
             height: 100%;
             width: 0%;
-            background: linear-gradient(90deg, #E50914, #ff4444);
-            border-radius: 3px;
-            transition: width 0.3s ease;
+            background: linear-gradient(90deg, #7a0008, var(--red), var(--red2));
+            border-radius: 2px;
+            transition: width 0.4s cubic-bezier(.4,0,.2,1);
+            box-shadow: 0 0 10px rgba(229,9,20,0.8);
         }
+
+        /* ═══ CORNER BRACKETS ═══ */
+        .bracket {
+            position: fixed;
+            width: 26px;
+            height: 26px;
+            z-index: 3;
+            opacity: 0.28;
+        }
+        .bracket::before, .bracket::after {
+            content: '';
+            position: absolute;
+            background: var(--red);
+        }
+        .bracket::before { width:100%; height:1.5px; top:0; left:0; }
+        .bracket::after  { width:1.5px; height:100%; top:0; left:0; }
+
+        .br-tl { top:20px; left:20px; }
+        .br-tr { top:20px; right:20px; transform:scaleX(-1); }
+        .br-bl { bottom:20px; left:20px; transform:scaleY(-1); }
+        .br-br { bottom:20px; right:20px; transform:scale(-1,-1); }
+
+        /* ═══ VERSION ═══ */
         #version-badge {
             position: fixed;
-            bottom: 16px;
-            right: 16px;
-            font-size: 9px;
-            color: #222;
-            letter-spacing: 1px;
+            bottom: 20px;
+            right: 22px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 7.5px;
+            font-weight: 400;
+            letter-spacing: 2px;
+            color: #1e1e1e;
+            z-index: 3;
         }
     </style>
 </head>
 <body>
 
-<img src="voxtv.png" class="logo" alt="Vox TV">
-<div class="title">VOX TV</div>
-<div class="subtitle">CHARGEMENT EN COURS</div>
+<div class="grid-bg"></div>
+<div class="glow-core"></div>
+<div class="scan-line"></div>
 
-<div class="loader-wrap">
-    <div class="spinner"></div>
-    <div id="status-msg">Vérification des mises à jour...</div>
-    <div class="progress-bar-wrap">
-        <div class="progress-bar" id="progress-bar"></div>
+<div class="bracket br-tl"></div>
+<div class="bracket br-tr"></div>
+<div class="bracket br-bl"></div>
+<div class="bracket br-br"></div>
+
+<div class="wrapper">
+
+    <div class="logo-frame">
+        <img src="voxtv.png" class="logo-img" alt="Vox TV">
     </div>
+
+    <div class="brand">VOX <em>TV</em></div>
+    <div class="divider"></div>
+    <div class="tagline">La voix du monde &nbsp;·&nbsp; Toutes les chaînes &nbsp;·&nbsp; Partout</div>
+
+    <div class="loader-wrap">
+        <div class="ring-spinner">
+            <span></span><span></span><span></span>
+            <div class="ring-dot"></div>
+        </div>
+        <div id="status-msg">Vérification des mises à jour...</div>
+        <div class="bar-wrap">
+            <div class="bar-fill" id="progress-bar"></div>
+        </div>
+    </div>
+
 </div>
 
-<div id="version-badge">v<span id="v-display">—</span></div>
+<div id="version-badge">VOX·TV &nbsp; v<span id="v-display">—</span></div>
 
 <script>
-// ═══════════════════════════════════════════════════════
-// CONFIGURATION — même Supabase que l'app
-// ═══════════════════════════════════════════════════════
 const SUPABASE_URL = "https://jkcityzwqvlppwasqsru.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImprY2l0eXp3cXZscHB3YXNxc3J1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMTg1NDIsImV4cCI6MjA5MDg5NDU0Mn0.N2cxY-9SOKGqDQV4eTGz_Tdxa9zg3e5gQ1t79SMsS-U";
 
-// Clé de stockage dans localStorage
-const STORE_KEY     = 'myboxtv_app_code';
-const STORE_VERSION = 'myboxtv_app_version';
+const STORE_KEY     = 'voxtv_app_code';
+const STORE_VERSION = 'voxtv_app_version';
 
-// ═══════════════════════════════════════════════════════
-// UTILITAIRES
-// ═══════════════════════════════════════════════════════
-function setStatus(msg) {
-    document.getElementById('status-msg').innerText = msg;
-}
-function setProgress(pct) {
-    document.getElementById('progress-bar').style.width = Math.min(100, pct) + '%';
-}
+function setStatus(msg) { document.getElementById('status-msg').innerText = msg; }
+function setProgress(pct) { document.getElementById('progress-bar').style.width = Math.min(100,pct)+'%'; }
 
 async function sbGet(table, params) {
     try {
-        const q   = params ? '?' + params : '';
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${q}`, {
-            headers: {
-                'apikey': SUPABASE_KEY,
-                'Authorization': 'Bearer ' + SUPABASE_KEY
-            }
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${params?'?'+params:''}`, {
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer '+SUPABASE_KEY }
         });
         if (!res.ok) return null;
         return await res.json();
     } catch(e) { return null; }
 }
 
-// ═══════════════════════════════════════════════════════
-// LANCER L'APPLICATION
-// ═══════════════════════════════════════════════════════
 function launchApp(code) {
     setStatus('Lancement...');
     setProgress(100);
-
     setTimeout(() => {
         const iframe = document.createElement('iframe');
         iframe.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:none;z-index:99999;';
-        iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-downloads allow-top-navigation');
+        iframe.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-downloads allow-top-navigation');
         document.body.appendChild(iframe);
-
-        // srcdoc = même origine que la page parente → fetch Supabase fonctionne, clics fonctionnent
         iframe.srcdoc = code;
-
         iframe.onload = () => {
-            document.querySelector('.logo')        && (document.querySelector('.logo').style.display        = 'none');
-            document.querySelector('.title')       && (document.querySelector('.title').style.display       = 'none');
-            document.querySelector('.subtitle')    && (document.querySelector('.subtitle').style.display    = 'none');
-            document.querySelector('.loader-wrap') && (document.querySelector('.loader-wrap').style.display = 'none');
-            document.getElementById('version-badge') && (document.getElementById('version-badge').style.display = 'none');
-            document.body.style.background = '#000';
+            document.querySelectorAll('.wrapper,.grid-bg,.glow-core,.scan-line,.bracket,#version-badge')
+                    .forEach(el => { if(el) el.style.display='none'; });
+            document.body.style.background='#000';
         };
     }, 150);
 }
 
-// ═══════════════════════════════════════════════════════
-// DÉMARRAGE
-// ═══════════════════════════════════════════════════════
 async function boot() {
     const localVersion = localStorage.getItem(STORE_VERSION) || '0';
     const localCode    = localStorage.getItem(STORE_KEY);
@@ -180,71 +376,45 @@ async function boot() {
     setProgress(10);
     setStatus('Vérification des mises à jour...');
 
-    // ── 1. Vérifier la version disponible sur Supabase ──
-    let remoteVersion = null;
-    let remoteCode    = null;
-
-    const data = await sbGet('app_updates', 'select=version,code&order=version.desc&limit=1');
-
+    const data = await sbGet('app_updates','select=version,code&order=version.desc&limit=1');
     setProgress(30);
 
+    let remoteVersion = null;
     if (data && data.length > 0) {
         remoteVersion = String(data[0].version);
         document.getElementById('v-display').innerText = remoteVersion;
     }
 
-    // ── 2. Comparer les versions ──
-    const needUpdate = remoteVersion && (remoteVersion !== localVersion);
+    const needUpdate = remoteVersion && remoteVersion !== localVersion;
 
     if (needUpdate) {
-        // ── MISE À JOUR DISPONIBLE ──
-        setStatus('Nouvelle version ' + remoteVersion + ' disponible !\nTéléchargement...');
+        setStatus('Version ' + remoteVersion + ' disponible\nTéléchargement...');
         setProgress(50);
-
-        remoteCode = data[0].code;
-
+        const remoteCode = data[0].code;
         if (remoteCode && remoteCode.length > 100) {
             setProgress(80);
-            setStatus('Installation de la mise à jour...');
-
-            // Sauvegarder le nouveau code
-            localStorage.setItem(STORE_KEY,     remoteCode);
+            setStatus('Installation...');
+            localStorage.setItem(STORE_KEY, remoteCode);
             localStorage.setItem(STORE_VERSION, remoteVersion);
-
             setProgress(95);
             setStatus('Mise à jour installée ✓');
-
             setTimeout(() => launchApp(remoteCode), 600);
         } else {
-            // Code vide ou invalide → utiliser l'ancien si disponible
-            console.warn('[Updater] Code distant invalide, utilisation du cache');
-            if (localCode) {
-                setStatus('Utilisation de la version locale...');
-                launchApp(localCode);
-            } else {
-                setStatus('Erreur : aucune version disponible.\nVérifiez votre connexion.');
-                setProgress(0);
-            }
+            if (localCode) { setStatus('Version locale en cours...'); launchApp(localCode); }
+            else { setStatus('Erreur · Vérifiez votre connexion'); setProgress(0); }
         }
-
     } else if (localCode) {
-        // ── PAS DE MISE À JOUR — lancer la version locale ──
         document.getElementById('v-display').innerText = localVersion;
-        setStatus('Version ' + localVersion + ' à jour ✓');
+        setStatus('Version ' + localVersion + ' — À jour ✓');
         setProgress(90);
         setTimeout(() => launchApp(localCode), 400);
-
     } else {
-        // ── AUCUNE VERSION LOCALE ET PAS DE CONNEXION ──
-        setStatus('Aucune version disponible.\nConnectez-vous à Internet\npour le premier chargement.');
+        setStatus('Connexion Internet requise\npour le premier chargement.');
         setProgress(0);
-
-        // Retry automatique toutes les 5s
         setTimeout(boot, 5000);
     }
 }
 
-// Lancement
 boot();
 </script>
 </body>
