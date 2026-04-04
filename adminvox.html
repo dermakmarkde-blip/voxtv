@@ -1,0 +1,2946 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - My Box TV (v6 — Optimisé)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js" defer></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: #eee; margin: 0; }
+
+        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 999; display: flex; align-items: center; justify-content: center; }
+        .login-box { background: #1e1e1e; padding: 40px; border-radius: 10px; border: 1px solid #333; text-align: center; }
+        input, select { padding: 10px; border-radius: 5px; border: 1px solid #444; background: #222; color: white; margin: 5px 0; }
+        button { padding: 10px 20px; background: #e50914; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: background .2s; }
+        button:hover { background: #ff0f1f; }
+
+        #dashboard { display: none; padding: 20px; max-width: 1300px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        h1 { color: #e50914; margin: 0; display:flex; align-items:center; gap:15px; }
+
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab-btn { background: #333; padding: 10px 20px; border-radius: 5px; cursor: pointer; border: none; color: #eee; font-weight: bold; }
+        .tab-btn.active { background: #e50914; color: white; }
+        .section { display: none; }
+        .section.active { display: block; }
+
+        table { width: 100%; border-collapse: collapse; background: #1e1e1e; border-radius: 8px; overflow: hidden; }
+        th, td { padding: 13px 15px; text-align: left; border-bottom: 1px solid #2a2a2a; font-size: 13px; }
+        th { background: #252525; color: #aaa; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+        tr:hover { background: #242424; }
+
+        .action-btn { padding: 6px 10px; font-size: 12px; margin-right: 4px; border-radius: 4px; cursor: pointer; border: none; color: white; }
+        .btn-pdf  { background: #28a745; }
+        .btn-edit { background: #007bff; }
+        .btn-del  { background: #ff4444; }
+        .btn-rst  { background: #555; }
+
+        .add-form { background: #1e1e1e; border: 1px solid #2e2e2e; padding: 18px 20px; border-radius: 10px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .add-form h3 { margin: 0; color: #aaa; font-size: 13px; }
+
+        .maint-status { padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-left: 10px; }
+        .maint-on  { background: red;   color: white; }
+        .maint-off { background: green; color: white; }
+
+        .badge-vie    { background: rgba(0,170,255,.2); color: #0af;    padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight:700; }
+        .badge-active { background: rgba(46,204,113,.2); color: #2ecc71; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight:700; }
+        .badge-exp    { background: rgba(229,9,20,.2);   color: #e50914; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight:700; }
+
+        #stats-bar { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+        .stat-card { background: #1e1e1e; border: 1px solid #2e2e2e; border-radius: 10px; padding: 16px 22px; flex: 1; min-width: 130px; }
+        .stat-val  { font-size: 28px; font-weight: 900; color: #e50914; }
+        .stat-lbl  { font-size: 11px; color: #666; margin-top: 2px; }
+
+        /* chaines tab */
+        #chaines-section .add-form { gap: 8px; }
+        #chaines-section select { min-width: 120px; }
+
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(60px); background: #1e1e1e; border: 1px solid #333; color: #eee; padding: 12px 24px; border-radius: 30px; z-index: 9999; font-size: 13px; transition: transform .3s ease; pointer-events:none; }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+
+        @media(max-width:600px){
+            .add-form input[style*="width:400px"] { width: 100% !important; }
+            th:nth-child(3), td:nth-child(3) { display:none; }
+        }
+
+        /* TARIFS */
+        #tarif-modal-overlay.open { display:flex !important; }
+
+        /* ── UPDATER ── */
+        #update-section .upd-card {
+            background: #1e1e1e; border: 1px solid #2a2a2a;
+            border-radius: 12px; padding: 20px; margin-bottom: 18px;
+        }
+        #update-section .upd-card-title {
+            font-size: 11px; letter-spacing: 2px; color: #e50914;
+            font-weight: 700; margin-bottom: 14px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        #code-input {
+            width: 100%; height: 300px;
+            background: #0a0a0a; border: 1px solid #333;
+            border-radius: 8px; color: #b0e0b0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px; padding: 12px; resize: vertical; line-height: 1.5;
+        }
+        #code-input:focus { outline: none; border-color: rgba(46,204,113,.4); }
+        .upd-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+        @media(max-width:600px){ .upd-form-row { grid-template-columns: 1fr; } }
+        .upd-form-row label { display:block; font-size:10px; color:#666; letter-spacing:1px; margin-bottom:5px; }
+        .upd-form-row input { width:100%; padding:10px 12px; background:#222; border:1px solid #333; border-radius:6px; color:#fff; font-size:13px; }
+        .upd-form-row input:focus { outline:none; border-color:rgba(46,204,113,.4); }
+        #btn-publish-upd {
+            width:100%; padding:14px; background:linear-gradient(135deg,#2ecc71,#1a8a4a);
+            color:#fff; border:none; border-radius:8px; font-size:14px; font-weight:700;
+            cursor:pointer; margin-top:12px; display:flex; align-items:center; justify-content:center; gap:8px;
+            box-shadow: 0 4px 16px rgba(46,204,113,.3);
+        }
+        #btn-publish-upd:hover { background: linear-gradient(135deg,#35d977,#22a057); }
+        #btn-publish-upd:disabled { opacity:.5; cursor:not-allowed; }
+        #publish-msg-upd {
+            margin-top:12px; padding:11px 14px; border-radius:8px;
+            font-size:13px; display:none; text-align:center;
+        }
+        #publish-msg-upd.success { background:rgba(46,204,113,.1); border:1px solid rgba(46,204,113,.3); color:#2ecc71; }
+        #publish-msg-upd.error   { background:rgba(229,9,20,.1);  border:1px solid rgba(229,9,20,.3);  color:#e50914; }
+        #publish-msg-upd.info    { background:rgba(0,170,255,.1);  border:1px solid rgba(0,170,255,.3);  color:#0af; }
+        .upd-history-row {
+            display:flex; align-items:center; justify-content:space-between;
+            padding:10px 14px; background:#252525; border-radius:8px; margin-bottom:6px; font-size:13px;
+        }
+        .upd-v-badge {
+            background:rgba(229,9,20,.2); color:#e50914; border:1px solid rgba(229,9,20,.3);
+            border-radius:20px; font-size:10px; font-weight:700; padding:2px 10px; font-family:monospace;
+        }
+        .upd-v-note { color:#888; font-size:11px; flex:1; margin:0 12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .upd-v-size { color:#555; font-size:10px; }
+        .upd-v-date { color:#555; font-size:11px; }
+        #code-info-upd { display:flex; justify-content:space-between; font-size:11px; color:#555; margin-top:6px; }
+        .upd-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:18px; }
+        .upd-stat  { background:#252525; border:1px solid #2a2a2a; border-radius:8px; padding:12px; text-align:center; }
+        .upd-stat-val { font-size:22px; font-weight:900; color:#e50914; font-family:monospace; }
+        .upd-stat-lbl { font-size:10px; color:#666; margin-top:3px; letter-spacing:1px; }
+        .tarif-card { background:#1e1e1e; border:1px solid #2a2a2a; border-radius:10px; padding:18px; position:relative; overflow:hidden; transition:border-color .2s; }
+        .tarif-card:hover { border-color:#444; }
+        .tarif-card.inactive { opacity:.45; }
+        .tarif-card .card-badge { position:absolute; top:12px; right:12px; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:700; }
+        .tarif-card .card-price { font-size:30px; font-weight:900; color:#fff; }
+        .tarif-card .card-price-old { font-size:14px; color:#555; text-decoration:line-through; }
+        .tarif-card .card-label { font-size:13px; color:#aaa; margin-top:4px; }
+        .tarif-card .card-actions { display:flex; gap:6px; margin-top:14px; }
+        .tf-toggle-btn { padding:4px 12px; font-size:12px; border-radius:4px; cursor:pointer; border:none; background:#333; color:#eee; transition:background .2s; }
+        .tf-toggle-btn:hover { background:#444; }
+
+        /* ── PRIORITÉ CHAÎNES ── */
+        #priorite-section .stats-row { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+        #priorite-section .prio-stat-card { background: #141414; border: 1px solid #1e1e1e; border-radius: 10px; padding: 14px 20px; flex: 1; min-width: 110px; }
+        #priorite-section .prio-stat-val { font-size: 24px; font-weight: 900; color: #e50914; }
+        #priorite-section .prio-stat-lbl { font-size: 10px; color: #555; margin-top: 3px; letter-spacing: 1px; }
+        #priorite-section .prio-toolbar { background: #141414; border: 1px solid #1e1e1e; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        #priorite-section .prio-toolbar input[type=text] { flex: 1; min-width: 160px; padding: 8px 12px; background: #0d0d0d; border: 1px solid #2a2a2a; border-radius: 7px; color: #fff; font-size: 13px; }
+        #priorite-section .prio-toolbar input:focus { outline: none; border-color: #e50914; }
+        #priorite-section .prio-toolbar select { padding: 8px 10px; background: #0d0d0d; border: 1px solid #2a2a2a; border-radius: 7px; color: #fff; font-size: 13px; cursor: pointer; }
+        .prio-btn { padding: 9px 16px; border-radius: 7px; border: none; cursor: pointer; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; transition: all .15s; white-space: nowrap; }
+        .prio-btn-red   { background: #e50914; color: #fff; }
+        .prio-btn-red:hover { background: #ff1a24; }
+        .prio-btn-green { background: linear-gradient(135deg,#2ecc71,#1a8a4a); color: #fff; box-shadow: 0 3px 12px rgba(46,204,113,.3); }
+        .prio-btn-green:hover { filter: brightness(1.1); }
+        .prio-btn-gray  { background: #1e1e1e; color: #aaa; border: 1px solid #2a2a2a; }
+        .prio-btn-gray:hover { background: #252525; color: #fff; }
+        .prio-btn:disabled { opacity: .4; cursor: not-allowed; filter: none; }
+        .prio-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        @media (max-width: 700px) { .prio-columns { grid-template-columns: 1fr; } }
+        .prio-col-box { background: #141414; border: 1px solid #1e1e1e; border-radius: 10px; display: flex; flex-direction: column; height: 580px; }
+        .prio-col-header { padding: 11px 14px; border-bottom: 1px solid #1e1e1e; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; gap: 8px; flex-wrap: wrap; }
+        .prio-col-title { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; }
+        .prio-col-count { font-size: 11px; color: #555; }
+        .prio-col-list  { flex: 1; overflow-y: auto; padding: 5px; scrollbar-width: thin; scrollbar-color: #2a2a2a transparent; }
+        .prio-col-list::-webkit-scrollbar { width: 3px; }
+        .prio-col-list::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
+        .prio-ch-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; margin-bottom: 2px; background: #0d0d0d; border: 1px solid transparent; user-select: none; transition: background .1s; }
+        .prio-ch-item:hover { background: #161616; border-color: #222; }
+        .prio-ch-item.drag-over { border-color: #e50914 !important; background: rgba(229,9,20,.07) !important; }
+        .prio-ch-item.dragging { opacity: .3; }
+        .prio-ch-item.is-priority { border-left: 2px solid #ffd700; }
+        .prio-ch-item.top3 { border-left: 2px solid #e50914; }
+        .prio-ch-drag { color: #252525; font-size: 11px; cursor: grab; flex-shrink: 0; padding: 2px; }
+        .prio-ch-drag:hover { color: #555; }
+        .prio-ch-rank { font-size: 10px; color: #333; font-weight: 700; width: 22px; text-align: right; flex-shrink: 0; font-family: monospace; }
+        .prio-ch-rank.gold { color: #ffd700; }
+        .prio-ch-logo { width: 28px; height: 28px; object-fit: contain; background: #fff; border-radius: 4px; padding: 1px; flex-shrink: 0; }
+        .prio-ch-name { font-size: 12px; font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .prio-ch-cat  { font-size: 10px; color: #444; flex-shrink: 0; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .prio-ch-btn { width: 24px; height: 24px; border-radius: 4px; border: none; background: transparent; color: #333; cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .12s; }
+        .prio-ch-btn:hover { background: rgba(229,9,20,.2); color: #e50914; }
+        .prio-ch-btn.add:hover { background: rgba(46,204,113,.2); color: #2ecc71; }
+        .prio-ch-btn:disabled { opacity: .2; cursor: default; background: transparent !important; }
+        .prio-drop-hint { text-align: center; padding: 50px 20px; color: #252525; pointer-events: none; }
+        .prio-drop-hint i { font-size: 28px; margin-bottom: 10px; display: block; }
+        .prio-drop-hint p { font-size: 12px; line-height: 1.8; }
+        .prio-loading { text-align: center; padding: 40px; color: #333; font-size: 13px; }
+        .prio-loading i { font-size: 22px; animation: spin .7s linear infinite; margin-bottom: 10px; display: block; }
+
+        /* ── SELECTION / CHECKBOXES ── */
+        .prio-ch-item .prio-ch-check { width: 15px; height: 15px; accent-color: #e50914; cursor: pointer; flex-shrink: 0; margin-right: 2px; }
+        .prio-ch-item.selected { background: rgba(229,9,20,.08) !important; border-color: rgba(229,9,20,.3) !important; }
+        .prio-sel-bar { display: none; align-items: center; gap: 8px; padding: 6px 8px; background: rgba(229,9,20,.07); border-top: 1px solid rgba(229,9,20,.15); flex-shrink: 0; flex-wrap: wrap; }
+        .prio-sel-bar.show { display: flex; }
+        .prio-sel-bar span { font-size: 11px; color: #e50914; font-weight: 700; flex: 1; }
+        .prio-sel-btn { padding: 5px 10px; border-radius: 5px; border: none; cursor: pointer; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px; transition: all .12s; }
+        .prio-sel-btn-green { background: rgba(46,204,113,.15); color: #2ecc71; border: 1px solid rgba(46,204,113,.3); }
+        .prio-sel-btn-green:hover { background: rgba(46,204,113,.25); }
+        .prio-sel-btn-red   { background: rgba(229,9,20,.15);  color: #e50914; border: 1px solid rgba(229,9,20,.3); }
+        .prio-sel-btn-red:hover   { background: rgba(229,9,20,.25); }
+        .prio-sel-btn-gray  { background: rgba(255,255,255,.05); color: #aaa; border: 1px solid #2a2a2a; }
+        .prio-sel-btn-gray:hover  { background: rgba(255,255,255,.1); color: #fff; }
+        .prio-col-check-all { width: 14px; height: 14px; accent-color: #e50914; cursor: pointer; flex-shrink: 0; }
+        #prio-ctx-menu { position: fixed; background: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 8px; z-index: 9900; padding: 4px 0; min-width: 190px; box-shadow: 0 8px 28px rgba(0,0,0,.7); display: none; }
+        #prio-ctx-menu.open { display: block; }
+        .prio-ctx-item { padding: 9px 16px; font-size: 12px; color: #ccc; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background .1s; }
+        .prio-ctx-item:hover { background: #252525; color: #fff; }
+        .prio-ctx-item i { width: 14px; text-align: center; color: #555; }
+        .prio-ctx-item:hover i { color: #e50914; }
+        .prio-ctx-item.ctx-green:hover i { color: #2ecc71; }
+        .prio-ctx-item.ctx-disabled { opacity: .35; pointer-events: none; }
+        .prio-ctx-sep { height: 1px; background: #2a2a2a; margin: 3px 0; }
+        /* ── RIGHT COLUMN SEARCH ── */
+        .prio-col-search-wrap { padding: 6px 8px 0; flex-basis: 100%; }
+        .prio-col-search-wrap input { width: 100%; padding: 6px 10px; background: #0d0d0d; border: 1px solid #222; border-radius: 6px; color: #fff; font-size: 12px; box-sizing: border-box; }
+        .prio-col-search-wrap input:focus { outline: none; border-color: #ffd700; }
+
+        /* ── SÉLECTION PAR PLAGE (Shift+clic) ── */
+        .prio-ch-item.range-preview { background: rgba(229,9,20,.05) !important; border-color: rgba(229,9,20,.2) !important; }
+
+        /* ── SUPPRESSION / QUARANTAINE BOUTONS ── */
+        .prio-sel-btn-orange { background: rgba(255,120,0,.15); color: #ff7800; border: 1px solid rgba(255,120,0,.35); }
+        .prio-sel-btn-orange:hover { background: rgba(255,120,0,.28); }
+
+        /* ── QUARANTAINE PANEL ── */
+        #prio-quarantine-panel {
+            display: none; margin-top: 14px;
+            background: #100a00; border: 1px solid rgba(255,120,0,.3);
+            border-radius: 10px; overflow: hidden;
+        }
+        #prio-quarantine-header {
+            display: flex; align-items: center; gap: 10px; padding: 10px 16px;
+            background: rgba(255,120,0,.07); cursor: pointer; border-bottom: 1px solid rgba(255,120,0,.15);
+            user-select: none;
+        }
+        #prio-quarantine-header:hover { background: rgba(255,120,0,.12); }
+        .prio-quarantine-badge {
+            background: #ff7800; color: #fff; border-radius: 20px;
+            font-size: 10px; font-weight: 900; padding: 1px 8px; font-family: monospace;
+        }
+        #prio-quarantine-body { padding: 10px 12px; }
+        .prio-quarantine-item {
+            display: flex; align-items: center; gap: 8px; padding: 6px 8px;
+            border-radius: 6px; margin-bottom: 2px;
+            background: rgba(255,120,0,.04); border: 1px solid rgba(255,120,0,.1);
+        }
+        .prio-quarantine-item:hover { background: rgba(255,120,0,.09); }
+        #prio-quarantine-actions {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 8px 12px; border-top: 1px solid rgba(255,120,0,.12);
+            flex-wrap: wrap; gap: 8px;
+        }
+        .prio-quarantine-list-wrap { max-height: 260px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(255,120,0,.2) transparent; }
+
+        /* ── MODALE CONFIRMATION SUPPRESSION ── */
+        #prio-delete-modal-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75);
+            z-index: 9950; align-items: center; justify-content: center;
+        }
+        #prio-delete-modal-overlay.open { display: flex; }
+        #prio-delete-modal {
+            background: #1a0a0a; border: 1px solid rgba(229,9,20,.4);
+            border-radius: 12px; padding: 28px 32px; max-width: 420px; width: 90%;
+            text-align: center;
+        }
+        #prio-delete-modal h3 { color: #e50914; margin: 0 0 10px; font-size: 16px; }
+        #prio-delete-modal p  { color: #aaa; font-size: 13px; margin: 0 0 20px; line-height: 1.6; }
+        #prio-delete-modal .modal-count { font-size: 36px; font-weight: 900; color: #e50914; display: block; margin: 8px 0; }
+        .modal-btn-row { display: flex; gap: 10px; justify-content: center; }
+        .modal-btn-cancel { background: #333; color: #aaa; border: none; border-radius: 7px; padding: 10px 24px; font-size: 13px; font-weight: 700; cursor: pointer; }
+        .modal-btn-cancel:hover { background: #444; color: #fff; }
+        .modal-btn-confirm { background: #e50914; color: #fff; border: none; border-radius: 7px; padding: 10px 24px; font-size: 13px; font-weight: 700; cursor: pointer; }
+        .modal-btn-confirm:hover { background: #ff1a24; }
+        /* ── UNDO/REDO TOOLBAR ── */
+        .prio-undo-btn { background: #1a1a1a; border: 1px solid #2a2a2a; color: #555; border-radius: 6px; padding: 6px 10px; font-size: 12px; cursor: pointer; transition: all .15s; }
+        .prio-undo-btn:hover:not(:disabled) { background: #252525; color: #fff; }
+        .prio-undo-btn:disabled { opacity: .3; cursor: default; }
+        #prio-save-bar { background: #141414; border: 1px solid #1e1e1e; border-radius: 10px; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-top: 14px; }
+        .prio-save-info { font-size: 13px; color: #555; }
+        .prio-save-info b { color: #fff; }
+        .prio-unsaved-dot { display: inline-block; width: 8px; height: 8px; background: #ffd700; border-radius: 50%; margin-left: 6px; animation: pulse 1.2s infinite; vertical-align: middle; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+        @keyframes spin   { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+
+        /* ── LECTEUR FLOTTANT PERMANENT ── */
+        #prio-mini-player {
+            position: fixed; bottom: 20px; right: 20px; width: 310px;
+            background: #0d0d0d; border: 1px solid rgba(229,9,20,.35);
+            border-radius: 12px; z-index: 8000; overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,.85), 0 0 0 1px rgba(229,9,20,.15);
+            display: none; /* caché jusqu'au 1er clic ▶ */
+            transition: box-shadow .2s;
+        }
+        #prio-mini-player.active { display: block; }
+        #prio-pip-drag-handle { cursor: move; padding: 4px 6px; color: #333; font-size: 11px; flex-shrink: 0; user-select: none; }
+        #prio-pip-drag-handle:hover { color: #666; }
+        #prio-mini-player-header { display: flex; align-items: center; gap: 6px; padding: 7px 10px; border-bottom: 1px solid #1a1a1a; }
+        #prio-mini-player-title { font-size: 12px; font-weight: 700; color: #ccc; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #prio-mini-player-status { font-size: 10px; color: #555; white-space: nowrap; }
+        #prio-mini-player-status.live { color: #2ecc71; }
+        #prio-mini-player-status.err  { color: #e50914; }
+        #prio-player-wrap { position: relative; background: #000; }
+        #prio-player-wrap video { width: 100%; height: 160px; display: block; object-fit: contain; background: #000; }
+        #prio-player-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.78); flex-direction: column; gap: 6px; }
+        #prio-player-overlay.hidden { display: none; }
+        .prio-player-controls { display: flex; align-items: center; gap: 8px; padding: 6px 10px; }
+        #prio-vol-range { flex: 1; accent-color: #e50914; height: 3px; cursor: pointer; }
+        #prio-btn-stop { background: none; border: none; color: #555; cursor: pointer; font-size: 13px; padding: 4px 7px; border-radius: 5px; transition: color .15s; }
+        #prio-btn-stop:hover { color: #e50914; }
+        #prio-btn-close-pip { background: none; border: none; color: #333; cursor: pointer; font-size: 13px; padding: 4px 6px; transition: color .15s; }
+        #prio-btn-close-pip:hover { color: #e50914; }
+        #prio-btn-mute { background: none; border: none; color: #555; cursor: pointer; font-size: 12px; padding: 4px 5px; }
+        #prio-btn-mute:hover { color: #fff; }
+        #prio-add-panel { background: #0d0d0d; border: 1px solid #1e1e1e; border-radius: 12px; margin-bottom: 14px; overflow: hidden; }
+        #prio-add-panel-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; cursor: pointer; user-select: none; }
+        #prio-add-panel-header:hover { background: rgba(255,255,255,.02); }
+        #prio-add-panel-title { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; color: #2ecc71; }
+        #prio-add-panel-body { padding: 12px 14px; border-top: 1px solid #1e1e1e; display: none; }
+        #prio-add-panel-body.open { display: block; }
+        .prio-add-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+        @media(max-width:600px){ .prio-add-row { grid-template-columns: 1fr; } }
+        .prio-add-row input { padding: 8px 10px; background: #141414; border: 1px solid #2a2a2a; border-radius: 6px; color: #fff; font-size: 12px; width: 100%; }
+        .prio-add-row input:focus { outline: none; border-color: #2ecc71; }
+        .prio-add-row input::placeholder { color: #333; }
+        .prio-add-preview { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: #141414; border: 1px solid #2a2a2a; border-radius: 6px; margin-bottom: 8px; min-height: 44px; }
+        .prio-add-preview img { width: 32px; height: 32px; object-fit: contain; background: #fff; border-radius: 4px; padding: 2px; flex-shrink: 0; }
+        .prio-add-preview-name { font-size: 12px; font-weight: 600; flex: 1; color: #ccc; }
+        .prio-add-preview-cat  { font-size: 10px; color: #555; }
+        .prio-add-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .prio-export-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+        .prio-export-bar span { font-size: 11px; color: #444; }
+        /* ── PANNEAU IMPORT M3U ── */
+        #prio-m3u-panel { background: #0d0d0d; border: 1px solid #1a2a1e; border-radius: 12px; margin-bottom: 14px; overflow: hidden; }
+        #prio-m3u-panel-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; cursor: pointer; user-select: none; }
+        #prio-m3u-panel-header:hover { background: rgba(0,170,255,.03); }
+        #prio-m3u-panel-title { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; color: #0af; }
+        #prio-m3u-panel-body { padding: 12px 14px; border-top: 1px solid #1a2a1e; display: none; }
+        #prio-m3u-panel-body.open { display: block; }
+        .prio-m3u-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-bottom: 10px; align-items: center; }
+        @media(max-width:600px){ .prio-m3u-row { grid-template-columns: 1fr; } }
+        .prio-m3u-row input { padding: 8px 10px; background: #141414; border: 1px solid #2a2a2a; border-radius: 6px; color: #fff; font-size: 12px; width: 100%; box-sizing: border-box; }
+        .prio-m3u-row input:focus { outline: none; border-color: #0af; }
+        .prio-m3u-row input::placeholder { color: #333; }
+        #prio-m3u-preview { background: #141414; border: 1px solid #2a2a2a; border-radius: 6px; padding: 8px 12px; font-size: 12px; color: #888; margin-bottom: 8px; min-height: 34px; display: flex; align-items: center; }
+        .prio-m3u-divider { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .prio-m3u-divider::before, .prio-m3u-divider::after { content:''; flex:1; height:1px; background:#1e1e1e; }
+        .prio-m3u-divider span { font-size: 10px; color: #333; letter-spacing: 2px; }
+    </style>
+</head>
+<body>
+
+<!-- ========== LOGIN ========== -->
+<div id="login-overlay">
+    <div class="login-box">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/4/45/COMPANY%281%29.png" width="100" style="margin-bottom:20px; border-radius:10px;">
+        <h2 style="color:#e50914; margin-top:0;">ADMIN ACCESS</h2>
+        <br>
+        <input type="password" id="admin-pass" placeholder="Mot de passe" style="width:220px; display:block; margin:0 auto 12px;">
+        <button id="btn-login" style="width:100%; max-width:242px; padding:13px;">ENTRER</button>
+        <div id="login-error" style="color:red; margin-top:10px; font-size:13px;"></div>
+    </div>
+</div>
+
+<!-- ========== DASHBOARD ========== -->
+<div id="dashboard">
+    <div class="header">
+        <h1>
+            <img src="https://upload.wikimedia.org/wikipedia/commons/4/45/COMPANY%281%29.png" width="55" style="border-radius:8px;">
+            MY BOX TV <span style="font-size:14px; color:#aaa;">MANAGER</span>
+        </h1>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <button id="maint-btn" onclick="toggleMaintenance()" style="background:#444; font-size:12px;">
+                <i class="fas fa-tools"></i> MAINTENANCE
+            </button>
+            <span id="maint-display" class="maint-status">...</span>
+            <button onclick="downloadBackup()" style="background:#007bff; font-size:12px;">
+                <i class="fas fa-download"></i> BACKUP CSV
+            </button>
+            <button onclick="loadData()" style="background:#444; font-size:12px;">
+                <i class="fas fa-sync-alt"></i> ACTUALISER
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div id="stats-bar">
+        <div class="stat-card"><div class="stat-val" id="st-total">—</div><div class="stat-lbl">Abonnés total</div></div>
+        <div class="stat-card"><div class="stat-val" id="st-active">—</div><div class="stat-lbl">Actifs</div></div>
+        <div class="stat-card"><div class="stat-val" id="st-vie">—</div><div class="stat-lbl">À vie</div></div>
+        <div class="stat-card"><div class="stat-val" id="st-sources">—</div><div class="stat-lbl">Sources M3U</div></div>
+        <div class="stat-card"><div class="stat-val" id="st-chaines">—</div><div class="stat-lbl">Chaînes directes</div></div>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="showTab('users-section',event)"><i class="fas fa-users"></i> UTILISATEURS</button>
+        <button class="tab-btn" onclick="showTab('sources-section',event)"><i class="fas fa-link"></i> SOURCES M3U</button>
+        <button class="tab-btn" onclick="showTab('chaines-section',event)"><i class="fas fa-tv"></i> CHAÎNES DIRECTES</button>
+        <button class="tab-btn" onclick="showTab('message-section',event)"><i class="fas fa-bullhorn"></i> MESSAGE</button>
+        <button class="tab-btn" onclick="showTab('tarifs-section',event)"><i class="fas fa-tags"></i> ABONNEMENTS</button>
+        <button class="tab-btn" onclick="showTab('update-section',event);loadHistory()"><i class="fas fa-rocket"></i> MISES À JOUR</button>
+        <button class="tab-btn" onclick="showTab('priorite-section',event);prioLoadData()"><i class="fas fa-star"></i> PRIORITÉ CHAÎNES</button>
+    </div>
+
+    <!-- ---- UTILISATEURS ---- -->
+    <div id="users-section" class="section active">
+        <div class="add-form">
+            <h3>Nouveau Client :</h3>
+            <input type="text" id="new-key" placeholder="ID (vide = auto)" style="width:180px;">
+            <select id="new-days">
+                <option value="30">30 Jours</option>
+                <option value="60">60 Jours</option>
+                <option value="90">3 Mois</option>
+                <option value="365">1 An</option>
+                <option value="VIE">À VIE</option>
+            </select>
+            <select id="new-screens">
+                <option value="1">1 Écran</option>
+                <option value="2">2 Écrans</option>
+                <option value="4">4 Écrans</option>
+                <option value="10">10 Écrans</option>
+                <option value="50">50 Écrans</option>
+            </select>
+            <input type="text" id="new-msg" placeholder="Message perso (opt.)" style="width:200px;">
+            <button onclick="addUser()"><i class="fas fa-plus"></i> CRÉER & PDF</button>
+        </div>
+        <table>
+            <thead><tr><th>CLÉ</th><th>DURÉE</th><th>ÉCRANS</th><th>APPAREILS</th><th>DATE</th><th>MESSAGE</th><th>ACTIONS</th></tr></thead>
+            <tbody id="users-body"></tbody>
+        </table>
+    </div>
+
+    <!-- ---- SOURCES M3U ---- -->
+    <div id="sources-section" class="section">
+        <div class="add-form">
+            <h3>Ajouter Source :</h3>
+            <input type="text" id="new-source-name" placeholder="Nom" style="width:200px;">
+            <input type="text" id="new-source-link" placeholder="https://..." style="width:420px;">
+            <button onclick="addSource()"><i class="fas fa-plus"></i> AJOUTER</button>
+        </div>
+        <table>
+            <thead><tr><th>#</th><th>NOM</th><th>LIEN</th><th>ACTIONS</th></tr></thead>
+            <tbody id="sources-body"></tbody>
+        </table>
+    </div>
+
+    <!-- ---- CHAÎNES DIRECTES ---- -->
+    <div id="chaines-section" class="section">
+        <div class="add-form">
+            <h3>Ajouter Chaîne :</h3>
+            <input type="text" id="new-ch-nom" placeholder="Nom" style="width:160px;">
+            <input type="text" id="new-ch-url" placeholder="https://... (flux)" style="width:340px;">
+            <input type="text" id="new-ch-groupe" placeholder="Groupe/Catégorie" style="width:160px;">
+            <select id="new-ch-statut">
+                <option value="OK">OK</option>
+                <option value="HS">HS</option>
+            </select>
+            <button onclick="addChaine()"><i class="fas fa-plus"></i> AJOUTER</button>
+        </div>
+        <table>
+            <thead><tr><th>NOM</th><th>URL</th><th>GROUPE</th><th>STATUT</th><th>ACTIONS</th></tr></thead>
+            <tbody id="chaines-body"></tbody>
+        </table>
+    </div>
+
+    <!-- ---- ABONNEMENTS / TARIFS ---- -->
+    <div id="tarifs-section" class="section">
+
+        <!-- Modal overlay -->
+        <div id="tarif-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:500; align-items:center; justify-content:center;">
+            <div style="background:#1e1e1e; border:1px solid #333; border-radius:12px; padding:28px 30px; width:500px; max-width:95vw; position:relative;">
+                <h3 id="tarif-modal-title" style="margin:0 0 20px; color:#e50914; font-size:16px;"><i class="fas fa-tags"></i> NOUVEAU TARIF</h3>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div>
+                        <label style="font-size:11px; color:#888; display:block; margin-bottom:4px;">Label Écran</label>
+                        <input id="tf-label-ecran" type="text" placeholder="Ex: 1 Écran" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="font-size:11px; color:#888; display:block; margin-bottom:4px;">Label Durée</label>
+                        <input id="tf-label-duree" type="text" placeholder="Ex: 1 Mois" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="font-size:11px; color:#888; display:block; margin-bottom:4px;">Nb Écrans</label>
+                        <input id="tf-screens" type="number" min="1" placeholder="1" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="font-size:11px; color:#888; display:block; margin-bottom:4px;">Durée (jours)</label>
+                        <input id="tf-days" type="number" min="1" placeholder="30" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="font-size:11px; color:#888; display:block; margin-bottom:4px;">Prix normal (FCFA)</label>
+                        <input id="tf-prix" type="number" min="0" placeholder="300" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="font-size:11px; color:#888; display:block; margin-bottom:4px;">Prix promo (opt.)</label>
+                        <input id="tf-prix-promo" type="number" min="0" placeholder="Vide si aucun" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="font-size:11px; color:#888; display:block; margin-bottom:4px;">Badge texte (opt.)</label>
+                        <input id="tf-badge" type="text" placeholder="Ex: - 75%" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="font-size:11px; color:#888; display:block; margin-bottom:4px;">Couleur badge</label>
+                        <div style="display:flex; gap:6px; align-items:center;">
+                            <input id="tf-badge-color" type="color" value="#e50914" style="width:46px; height:38px; padding:2px; border-radius:5px; cursor:pointer; border:1px solid #444; background:#222;">
+                            <input id="tf-badge-color-text" type="text" value="#e50914" placeholder="#e50914" style="flex:1;" oninput="document.getElementById('tf-badge-color').value=this.value">
+                        </div>
+                    </div>
+                    <div>
+                        <label style="font-size:11px; color:#888; display:block; margin-bottom:4px;">Ordre d'affichage</label>
+                        <input id="tf-ordre" type="number" min="0" placeholder="10" style="width:100%;">
+                    </div>
+                    <div style="display:flex; align-items:flex-end;">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; padding-bottom:8px;">
+                            <input id="tf-actif" type="checkbox" checked style="width:16px; height:16px; accent-color:#e50914; cursor:pointer;">
+                            <span style="font-size:13px; color:#ccc;">Tarif actif</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:10px; margin-top:22px; justify-content:flex-end;">
+                    <button onclick="closeTarifModal()" style="background:#333; padding:10px 22px;">Annuler</button>
+                    <button id="tarif-save-btn" onclick="saveTarif()" style="padding:10px 26px;"><i class="fas fa-save"></i> SAUVEGARDER</button>
+                </div>
+
+                <input type="hidden" id="tf-edit-id" value="">
+            </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+            <div style="color:#666; font-size:13px;"><i class="fas fa-info-circle"></i> Gérez les offres visibles sur la page d'accueil.</div>
+            <button onclick="openTarifModal()" style="font-size:13px;"><i class="fas fa-plus"></i> NOUVEAU TARIF</button>
+        </div>
+
+        <!-- Cards grid -->
+        <div id="tarifs-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; margin-bottom:20px;"></div>
+
+        <!-- Table view -->
+        <table>
+            <thead><tr><th>ID</th><th>OFFRE</th><th>ÉCRANS</th><th>JOURS</th><th>PRIX</th><th>PROMO</th><th>BADGE</th><th>ORDRE</th><th>ACTIF</th><th>ACTIONS</th></tr></thead>
+            <tbody id="tarifs-body"></tbody>
+        </table>
+    </div>
+
+    <!-- ---- MESSAGE ---- -->
+    <div id="message-section" class="section">
+        <div style="background:#1e1e1e; border:1px solid #2e2e2e; padding:24px; border-radius:10px; max-width:600px;">
+            <h3 style="margin-top:0; color:#aaa;"><i class="fas fa-bullhorn"></i> Message d'accueil global</h3>
+            <p style="font-size:12px; color:#555;">Affiché à tous les utilisateurs au démarrage. Laisser vide pour désactiver.</p>
+            <input type="text" id="global-msg-input" style="width:100%; padding:14px; box-sizing:border-box;" placeholder="Ex: Maintenance prévue ce soir à 22h...">
+            <button onclick="saveMessage()" style="width:100%; margin-top:12px; padding:13px;">
+                <i class="fas fa-save"></i> METTRE À JOUR
+            </button>
+        </div>
+    </div>
+
+    <!-- ---- MISES À JOUR APP ---- -->
+    <div id="update-section" class="section">
+
+        <!-- Stats -->
+        <div class="upd-stats">
+            <div class="upd-stat"><div class="upd-stat-val" id="upd-stat-version">—</div><div class="upd-stat-lbl">VERSION ACTUELLE</div></div>
+            <div class="upd-stat"><div class="upd-stat-val" id="upd-stat-total">—</div><div class="upd-stat-lbl">VERSIONS PUBLIÉES</div></div>
+            <div class="upd-stat"><div class="upd-stat-val" id="upd-stat-size">—</div><div class="upd-stat-lbl">TAILLE ACTUELLE</div></div>
+        </div>
+
+        <!-- Publier -->
+        <div class="upd-card">
+            <div class="upd-card-title"><i class="fas fa-upload"></i> PUBLIER UNE NOUVELLE VERSION</div>
+
+            <div class="upd-form-row">
+                <div>
+                    <label>NUMÉRO DE VERSION</label>
+                    <input type="text" id="new-version" placeholder="ex: 2.0, 1.5.1, 20240315">
+                </div>
+                <div>
+                    <label>NOTE DE MISE À JOUR (optionnel)</label>
+                    <input type="text" id="release-note" placeholder="ex: Correction bug PiP + autoplay son">
+                </div>
+            </div>
+
+            <div style="font-size:10px;color:#666;letter-spacing:1px;margin-bottom:6px;">CODE HTML COMPLET DE L'APPLICATION</div>
+            <textarea id="code-input" placeholder="Collez ici le code HTML complet de index.html..." oninput="onCodeChange()"></textarea>
+            <div id="code-info-upd">
+                <span id="code-lines">0 lignes</span>
+                <span id="code-size">0 Ko</span>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:12px;">
+                <button onclick="loadCurrentCode()" style="flex:1;padding:10px;background:#333;color:#aaa;border:none;border-radius:6px;cursor:pointer;font-size:12px;">
+                    <i class="fas fa-download"></i> Charger version actuelle
+                </button>
+                <button onclick="clearCode()" style="padding:10px 16px;background:#333;color:#aaa;border:none;border-radius:6px;cursor:pointer;font-size:12px;">
+                    <i class="fas fa-times"></i> Vider
+                </button>
+            </div>
+
+            <button id="btn-publish-upd" onclick="publishUpdate()">
+                <i class="fas fa-rocket"></i> PUBLIER LA MISE À JOUR
+            </button>
+            <div id="publish-msg-upd"></div>
+        </div>
+
+        <!-- Historique -->
+        <div class="upd-card">
+            <div class="upd-card-title"><i class="fas fa-history"></i> HISTORIQUE DES VERSIONS</div>
+            <div id="history-list">
+                <div style="text-align:center;color:#444;padding:16px;font-size:12px;">Chargement...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ---- PRIORITÉ CHAÎNES ---- -->
+    <div id="priorite-section" class="section">
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+            <div>
+                <div style="font-size:15px;font-weight:900;letter-spacing:1px;">PRIORITÉS DES CHAÎNES</div>
+                <div style="font-size:11px;color:#555;margin-top:2px;letter-spacing:1px;">LES PRIORITAIRES APPARAISSENT EN TÊTE POUR TOUS LES CLIENTS</div>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button class="prio-btn prio-btn-gray" onclick="_prioLoaded=false;prioLoadData()"><i class="fas fa-sync-alt"></i> Actualiser</button>
+                <button class="prio-btn prio-btn-gray" onclick="prioClearAll()"><i class="fas fa-undo"></i> Tout effacer</button>
+            </div>
+        </div>
+
+        <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+            <div class="prio-stat-card"><div class="prio-stat-val" id="prio-st-total">—</div><div class="prio-stat-lbl">TOTAL CHAÎNES</div></div>
+            <div class="prio-stat-card"><div class="prio-stat-val" id="prio-st-prio" style="color:#ffd700;">0</div><div class="prio-stat-lbl">EN PRIORITÉ (haut)</div></div>
+            <div class="prio-stat-card"><div class="prio-stat-val" id="prio-st-rest">—</div><div class="prio-stat-lbl">EN BAS</div></div>
+            <div class="prio-stat-card"><div class="prio-stat-val" id="prio-st-ver">—</div><div class="prio-stat-lbl">VERSION PUBLIÉE</div></div>
+        </div>
+
+        <div class="prio-toolbar">
+            <button class="prio-undo-btn" id="prio-btn-undo" onclick="prioUndo()" title="Annuler (Ctrl+Z)" disabled><i class="fas fa-undo"></i></button>
+            <button class="prio-undo-btn" id="prio-btn-redo" onclick="prioRedo()" title="Rétablir (Ctrl+Y)" disabled><i class="fas fa-redo"></i></button>
+            <select id="prio-cat-filter" onchange="prioFilterLeft()" style="margin-left:6px;"><option value="">Toutes catégories</option></select>
+            <button class="prio-btn prio-btn-gray" onclick="prioAddAllVisible()"><i class="fas fa-plus-circle"></i> Ajouter tout le filtre</button>
+        </div>
+
+        <div class="prio-export-bar">
+            <button class="prio-btn prio-btn-gray" onclick="prioExportJSON()"><i class="fas fa-download"></i> Exporter channels.json</button>
+            <button class="prio-btn prio-btn-gray" onclick="prioToggleAddPanel()"><i class="fas fa-plus-circle" style="color:#2ecc71;"></i> Ajouter une chaîne manuellement</button>
+            <button class="prio-btn prio-btn-gray" onclick="prioToggleM3uPanel()"><i class="fas fa-file-import" style="color:#0af;"></i> Importer un fichier M3U</button>
+            <span id="prio-export-info"></span>
+        </div>
+
+        <div id="prio-add-panel">
+            <div id="prio-add-panel-header" onclick="prioToggleAddPanel()">
+                <span id="prio-add-panel-title"><i class="fas fa-plus-circle" style="margin-right:6px;"></i>AJOUTER UNE CHAÎNE MANUELLEMENT</span>
+                <i class="fas fa-chevron-down" id="prio-add-panel-chevron" style="color:#333;font-size:11px;transition:transform .2s;"></i>
+            </div>
+            <div id="prio-add-panel-body">
+                <div class="prio-add-row">
+                    <input type="text" id="prio-add-name" placeholder="Nom de la chaîne *" oninput="prioUpdateAddPreview()">
+                    <input type="text" id="prio-add-url"  placeholder="URL du flux (http://... ou .m3u8) *" oninput="prioUpdateAddPreview()">
+                </div>
+                <div class="prio-add-row">
+                    <input type="text" id="prio-add-logo" placeholder="URL du logo (optionnel)" oninput="prioUpdateAddPreview()">
+                    <input type="text" id="prio-add-cat"  placeholder="Catégorie (ex: Sports, News...)" list="prio-cat-datalist" oninput="prioUpdateAddPreview()">
+                    <datalist id="prio-cat-datalist"></datalist>
+                </div>
+                <div class="prio-add-preview">
+                    <img id="prio-add-preview-logo" src="https://via.placeholder.com/32?text=TV" onerror="this.src='https://via.placeholder.com/32?text=TV'">
+                    <span class="prio-add-preview-name" id="prio-add-preview-name">Nom de la chaîne</span>
+                    <span class="prio-add-preview-cat"  id="prio-add-preview-cat">Catégorie</span>
+                </div>
+                <div class="prio-add-actions">
+                    <button class="prio-btn prio-btn-gray" onclick="prioTestAddChannel()"><i class="fas fa-play" style="color:#0af;"></i> Tester le flux</button>
+                    <button class="prio-btn prio-btn-gray" onclick="prioAddChannelToList(false)"><i class="fas fa-plus"></i> Ajouter en bas</button>
+                    <button class="prio-btn prio-btn-green" onclick="prioAddChannelToList(true)"><i class="fas fa-star"></i> Ajouter en priorité</button>
+                    <button class="prio-btn prio-btn-gray" onclick="prioClearAddForm()" style="margin-left:auto;"><i class="fas fa-times"></i> Vider</button>
+                </div>
+                <div id="prio-add-msg" style="font-size:11px;margin-top:8px;min-height:14px;"></div>
+            </div>
+        </div>
+
+        <!-- ── PANNEAU IMPORT M3U ── -->
+        <div id="prio-m3u-panel">
+            <div id="prio-m3u-panel-header" onclick="prioToggleM3uPanel()">
+                <span id="prio-m3u-panel-title"><i class="fas fa-file-import" style="margin-right:6px;"></i>IMPORTER UN FICHIER M3U / LIEN M3U</span>
+                <i class="fas fa-chevron-down" id="prio-m3u-panel-chevron" style="color:#333;font-size:11px;transition:transform .2s;"></i>
+            </div>
+            <div id="prio-m3u-panel-body">
+                <div style="font-size:11px;color:#444;margin-bottom:10px;letter-spacing:.5px;">
+                    Les chaînes du M3U seront <b style="color:#0af;">fusionnées</b> avec celles existantes. Les doublons (même URL) sont ignorés automatiquement.
+                </div>
+
+                <!-- URL -->
+                <div style="font-size:10px;color:#333;letter-spacing:1.5px;margin-bottom:5px;">OPTION 1 — LIEN URL M3U</div>
+                <div class="prio-m3u-row">
+                    <input type="text" id="prio-m3u-url-input" placeholder="https://example.com/playlist.m3u ou .m3u8">
+                    <button class="prio-btn prio-btn-gray" onclick="prioImportM3uUrl()" style="white-space:nowrap;"><i class="fas fa-cloud-download-alt" style="color:#0af;"></i> Charger URL</button>
+                </div>
+
+                <div class="prio-m3u-divider"><span>OU</span></div>
+
+                <!-- Fichier local -->
+                <div style="font-size:10px;color:#333;letter-spacing:1.5px;margin-bottom:5px;">OPTION 2 — FICHIER LOCAL</div>
+                <div style="margin-bottom:10px;">
+                    <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;background:#141414;border:1px solid #2a2a2a;border-radius:6px;padding:8px 14px;font-size:12px;color:#aaa;transition:background .2s;"
+                        onmouseover="this.style.background='#1e1e1e'" onmouseout="this.style.background='#141414'">
+                        <i class="fas fa-folder-open" style="color:#0af;"></i> Choisir un fichier .m3u / .m3u8 / .txt
+                        <input type="file" id="prio-m3u-file-input" accept=".m3u,.m3u8,.txt" style="display:none;" onchange="prioImportM3uFile(this)">
+                    </label>
+                    <span id="prio-m3u-file-name" style="font-size:11px;color:#444;margin-left:10px;"></span>
+                </div>
+
+                <!-- Prévisualisation avant fusion -->
+                <div id="prio-m3u-preview" style="display:none;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+                        <span style="font-size:11px;color:#0af;font-weight:700;" id="prio-m3u-preview-title">—</span>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                            <span id="prio-m3u-badge-new"  style="background:rgba(46,204,113,.15);color:#2ecc71;border:1px solid rgba(46,204,113,.3);border-radius:12px;font-size:10px;font-weight:700;padding:2px 9px;">0 nouvelles</span>
+                            <span id="prio-m3u-badge-dup"  style="background:rgba(255,170,0,.1);color:#ffa500;border:1px solid rgba(255,170,0,.3);border-radius:12px;font-size:10px;font-weight:700;padding:2px 9px;">0 doublons</span>
+                            <span id="prio-m3u-badge-tot"  style="background:rgba(0,170,255,.1);color:#0af;border:1px solid rgba(0,170,255,.3);border-radius:12px;font-size:10px;font-weight:700;padding:2px 9px;">→ Total : 0</span>
+                        </div>
+                    </div>
+                    <div id="prio-m3u-preview-list" style="max-height:160px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#2a2a2a transparent;"></div>
+                    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+                        <button class="prio-btn prio-btn-green" onclick="prioConfirmM3uMerge()"><i class="fas fa-code-merge"></i> Fusionner <span id="prio-m3u-confirm-count">0</span> nouvelles chaînes</button>
+                        <button class="prio-btn prio-btn-gray"  onclick="prioCancelM3u()"><i class="fas fa-times"></i> Annuler</button>
+                    </div>
+                </div>
+                <div id="prio-m3u-msg" style="font-size:11px;margin-top:8px;min-height:14px;"></div>
+            </div>
+        </div>
+
+        <div class="prio-columns">
+            <div class="prio-col-box">
+                <div class="prio-col-header" style="flex-wrap:wrap;">
+                    <input type="checkbox" class="prio-col-check-all" id="prio-left-check-all" title="Tout sélectionner" onchange="prioToggleSelectAllLeft(this.checked)">
+                    <span class="prio-col-title" style="color:#aaa;"><i class="fas fa-list" style="margin-right:5px;"></i>TOUTES LES CHAÎNES</span>
+                    <span class="prio-col-count" id="prio-left-count">—</span>
+                    <button class="prio-ch-btn" id="prio-left-sort-btn" title="Trier A→Z / Z→A" onclick="prioToggleLeftSort()" style="width:26px;height:26px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:5px;color:#555;flex-shrink:0;"><i class="fas fa-sort-alpha-down"></i></button>
+                    <span style="font-size:9px;color:#2a2a2a;letter-spacing:.3px;flex-basis:100%;padding:0 4px;margin-top:2px;" title="Cliquez une case, puis Shift+clic pour sélectionner une plage"><i class="fas fa-mouse-pointer"></i> Shift+clic pour sélectionner une plage</span>
+                    <div class="prio-col-search-wrap">
+                        <input type="text" id="prio-search-input" placeholder="🔍 Rechercher dans toutes les chaînes..." oninput="prioFilterLeft()">
+                    </div>
+                </div>
+                <div class="prio-sel-bar" id="prio-left-sel-bar">
+                    <span id="prio-left-sel-count">0 sélectionnée(s)</span>
+                    <button class="prio-sel-btn prio-sel-btn-green" onclick="prioAddSelectionToPrio()"><i class="fas fa-arrow-right"></i> Vers prioritaires</button>
+                    <button class="prio-sel-btn prio-sel-btn-orange" onclick="prioQuarantineSelection('left')" title="Masquer temporairement, restaurable"><i class="fas fa-ban"></i> Quarantaine</button>
+                    <button class="prio-sel-btn prio-sel-btn-red"   onclick="prioOpenDeleteModal('left')" title="Supprimer définitivement"><i class="fas fa-trash"></i> Supprimer</button>
+                    <button class="prio-sel-btn prio-sel-btn-gray"  onclick="prioDeselectAllLeft()"><i class="fas fa-times"></i> Désélectionner</button>
+                </div>
+                <div class="prio-col-list" id="prio-left-list">
+                    <div class="prio-loading"><i class="fas fa-spinner"></i>Chargement...</div>
+                </div>
+            </div>
+
+            <div class="prio-col-box">
+                <div class="prio-col-header" style="flex-wrap:wrap;">
+                    <input type="checkbox" class="prio-col-check-all" id="prio-right-check-all" title="Tout sélectionner" onchange="prioToggleSelectAllRight(this.checked)">
+                    <span class="prio-col-title" style="color:#ffd700;"><i class="fas fa-star" style="margin-right:5px;"></i>PRIORITAIRES <span id="prio-unsaved-dot" style="display:none;" class="prio-unsaved-dot"></span></span>
+                    <span class="prio-col-count" id="prio-right-count">0 chaîne(s)</span>
+                    <button class="prio-ch-btn" id="prio-right-sort-btn" title="Trier A→Z / Z→A" onclick="prioToggleRightSort()" style="width:26px;height:26px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:5px;color:#555;flex-shrink:0;"><i class="fas fa-sort-alpha-down"></i></button>
+                    <div class="prio-col-search-wrap">
+                        <input type="text" id="prio-right-search-input" placeholder="🔍 Rechercher dans les prioritaires..." oninput="prioRenderRight()">
+                    </div>
+                </div>
+                <div class="prio-sel-bar" id="prio-right-sel-bar">
+                    <span id="prio-right-sel-count">0 sélectionnée(s)</span>
+                    <button class="prio-sel-btn prio-sel-btn-gray"  onclick="prioMoveSelectionRight(-1)"><i class="fas fa-arrow-up"></i> Monter</button>
+                    <button class="prio-sel-btn prio-sel-btn-gray"  onclick="prioMoveSelectionRight(1)"><i class="fas fa-arrow-down"></i> Descendre</button>
+                    <button class="prio-sel-btn prio-sel-btn-red"   onclick="prioRemoveSelectionFromPrio()"><i class="fas fa-arrow-left"></i> Vers toutes les chaînes</button>
+                    <button class="prio-sel-btn prio-sel-btn-orange" onclick="prioQuarantineSelection('right')" title="Masquer temporairement, restaurable"><i class="fas fa-ban"></i> Quarantaine</button>
+                    <button class="prio-sel-btn prio-sel-btn-red"   onclick="prioOpenDeleteModal('right')" title="Supprimer définitivement"><i class="fas fa-trash"></i> Supprimer</button>
+                    <button class="prio-sel-btn prio-sel-btn-gray"  onclick="prioDeselectAllRight()"><i class="fas fa-ban"></i> Désélect.</button>
+                </div>
+                <div class="prio-col-list" id="prio-right-list"
+                    ondragover="event.preventDefault()"
+                    ondrop="prioOnDropEmptyRight(event)">
+                    <div id="prio-drop-hint" class="prio-drop-hint">
+                        <i class="fas fa-star"></i>
+                        <p>Glissez des chaînes ici<br>ou cliquez <b style="color:#2ecc71;">+</b><br><br>Elles seront <b style="color:#ffd700;">en tête de liste</b><br>pour tous vos clients<br>Les autres restent en bas</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── QUARANTAINE ── -->
+        <div id="prio-quarantine-panel">
+            <div id="prio-quarantine-header" onclick="prioToggleQuarantineBody()">
+                <i class="fas fa-ban" style="color:#ff7800;font-size:13px;"></i>
+                <span style="font-size:11px;font-weight:700;letter-spacing:1px;color:#ff7800;">QUARANTAINE</span>
+                <span class="prio-quarantine-badge" id="prio-quarantine-badge">0</span>
+                <span style="font-size:10px;color:#555;flex:1;">chaînes masquées — restaurables</span>
+                <i class="fas fa-chevron-down" id="prio-quarantine-chevron" style="color:#555;font-size:11px;transition:transform .2s;"></i>
+            </div>
+            <div id="prio-quarantine-body" style="display:none;">
+                <div class="prio-quarantine-list-wrap" id="prio-quarantine-list"></div>
+                <div id="prio-quarantine-actions">
+                    <span style="font-size:11px;color:#555;"><i class="fas fa-info-circle"></i> Les chaînes en quarantaine ne sont plus visibles ni publiées</span>
+                    <div style="display:flex;gap:8px;">
+                        <button class="prio-sel-btn prio-sel-btn-green" onclick="prioRestoreAllFromQuarantine()"><i class="fas fa-undo"></i> Tout restaurer</button>
+                        <button class="prio-sel-btn prio-sel-btn-red" onclick="prioEmptyQuarantine()"><i class="fas fa-trash"></i> Tout supprimer définitivement</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="prio-save-bar">
+            <div class="prio-save-info">
+                <span id="prio-nb" style="color:#ffd700;font-weight:700;">0</span> prioritaires en haut •
+                <b id="prio-rest-nb">—</b> autres en bas •
+                Total : <b id="prio-total-nb">—</b>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button class="prio-btn prio-btn-green" onclick="prioSaveAndPublish()" id="prio-btn-save">
+                    <i class="fas fa-upload"></i> SAUVEGARDER &amp; PUBLIER
+                </button>
+            </div>
+        </div>
+
+    </div><!-- /#priorite-section -->
+
+</div><!-- /#dashboard -->
+
+<!-- ── LECTEUR FLOTTANT PERMANENT ── -->
+<div id="prio-mini-player">
+    <div id="prio-mini-player-header">
+        <i class="fas fa-grip-vertical" id="prio-pip-drag-handle" title="Déplacer"></i>
+        <img id="prio-player-logo" src="" style="width:22px;height:22px;object-fit:contain;background:#fff;border-radius:3px;padding:1px;display:none;flex-shrink:0;">
+        <span id="prio-mini-player-title" style="font-size:11px;">—</span>
+        <span id="prio-mini-player-status">⏸</span>
+        <button id="prio-btn-stop" onclick="prioStopPlayer()" title="Arrêter"><i class="fas fa-stop"></i></button>
+        <button id="prio-btn-close-pip" onclick="prioClosePip()" title="Fermer"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="prio-player-wrap">
+        <video id="prio-test-video" playsinline></video>
+        <div id="prio-player-overlay">
+            <i class="fas fa-spinner" style="font-size:22px;color:#333;"></i>
+        </div>
+    </div>
+    <div class="prio-player-controls">
+        <i class="fas fa-volume-up" style="color:#333;font-size:11px;"></i>
+        <input type="range" id="prio-vol-range" min="0" max="100" value="80" oninput="prioSetVol(this.value)">
+        <span id="prio-vol-pct" style="font-size:10px;color:#444;width:30px;">80%</span>
+        <button id="prio-btn-mute" onclick="prioToggleMute()"><i class="fas fa-volume-mute"></i></button>
+    </div>
+</div>
+
+<!-- Context Menu Chaîne -->
+<div id="prio-ctx-menu">
+    <!-- Options colonne DROITE (réordonner) -->
+    <div class="prio-ctx-item" id="ctx-top"><i class="fas fa-angle-double-up"></i> Mettre en haut</div>
+    <div class="prio-ctx-item" id="ctx-middle"><i class="fas fa-arrows-alt-v"></i> Mettre au centre</div>
+    <div class="prio-ctx-item" id="ctx-rank"><i class="fas fa-hashtag"></i> Choisir le rang...</div>
+    <div class="prio-ctx-item" id="ctx-bottom"><i class="fas fa-angle-double-down"></i> Mettre en bas</div>
+    <div class="prio-ctx-sep" id="ctx-sep-reorder"></div>
+    <!-- Options colonne GAUCHE (ajouter en priorité) -->
+    <div class="prio-ctx-item ctx-green" id="ctx-add-top"><i class="fas fa-angle-double-up" style="color:#2ecc71;"></i> Ajouter → En haut</div>
+    <div class="prio-ctx-item ctx-green" id="ctx-add-middle"><i class="fas fa-arrows-alt-v" style="color:#2ecc71;"></i> Ajouter → Au centre</div>
+    <div class="prio-ctx-item ctx-green" id="ctx-add-rank"><i class="fas fa-hashtag" style="color:#2ecc71;"></i> Ajouter → Rang personnalisé...</div>
+    <div class="prio-ctx-item ctx-green" id="ctx-add-bottom"><i class="fas fa-angle-double-down" style="color:#2ecc71;"></i> Ajouter → En bas</div>
+    <div class="prio-ctx-sep" id="ctx-sep-add"></div>
+    <!-- Retirer -->
+    <div class="prio-ctx-item" id="ctx-remove"><i class="fas fa-times-circle"></i> Retirer des priorités</div>
+    <div class="prio-ctx-sep"></div>
+    <!-- Tester -->
+    <div class="prio-ctx-item" id="ctx-test"><i class="fas fa-play"></i> Tester la chaîne</div>
+    <div class="prio-ctx-sep"></div>
+    <!-- Quarantaine / Supprimer -->
+    <div class="prio-ctx-item" id="ctx-quarantine" style="color:#ff7800;"><i class="fas fa-ban" style="color:#ff7800;"></i> Mettre en quarantaine</div>
+    <div class="prio-ctx-item" id="ctx-delete" style="color:#e50914;"><i class="fas fa-trash" style="color:#e50914;"></i> Supprimer définitivement</div>
+</div>
+
+<!-- Modale confirmation suppression définitive -->
+<div id="prio-delete-modal-overlay">
+    <div id="prio-delete-modal">
+        <h3><i class="fas fa-exclamation-triangle"></i> Suppression définitive</h3>
+        <p>Vous êtes sur le point de supprimer<br>
+           <span class="modal-count" id="prio-delete-modal-count">0</span>
+           chaîne(s) de façon <b style="color:#e50914;">irréversible</b>.<br>
+           Elles ne pourront pas être restaurées.</p>
+        <div class="modal-btn-row">
+            <button class="modal-btn-cancel" onclick="prioCloseDeleteModal()"><i class="fas fa-times"></i> Annuler</button>
+            <button class="modal-btn-confirm" id="prio-delete-modal-confirm"><i class="fas fa-trash"></i> Supprimer quand même</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<script>
+// =====================================================
+// SUPABASE CONFIG
+// =====================================================
+const SUPABASE_URL = "https://jkcityzwqvlppwasqsru.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImprY2l0eXp3cXZscHB3YXNxc3J1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMTg1NDIsImV4cCI6MjA5MDg5NDU0Mn0.N2cxY-9SOKGqDQV4eTGz_Tdxa9zg3e5gQ1t79SMsS-U";
+const ADMIN_PASSWORD = "ADMIN1234";
+
+const SB_HEADERS = {
+    'apikey': SUPABASE_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_KEY,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation'
+};
+// Pour les gros INSERT : Supabase ne renvoie pas le code en réponse (évite double transfert)
+const SB_HEADERS_MINIMAL = {
+    'apikey': SUPABASE_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_KEY,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=minimal'
+};
+
+// =====================================================
+// HELPERS SUPABASE — robustes avec timeout + retry
+// =====================================================
+async function _sbFetch(url, opts, retries, timeout) {
+    retries = retries || 0;
+    timeout = timeout || 20000; // 20s par defaut, 90s pour gros payloads
+    const controller = new AbortController();
+    const tid = setTimeout(function(){ controller.abort(); }, timeout);
+    try {
+        const res = await fetch(url, Object.assign({}, opts, { signal: controller.signal }));
+        clearTimeout(tid);
+        return res;
+    } catch(e) {
+        clearTimeout(tid);
+        if (retries < 2 && (e.name === 'AbortError' || e.name === 'TypeError')) {
+            await new Promise(function(r){ setTimeout(r, 1000 * (retries + 1)); });
+            return _sbFetch(url, opts, retries + 1, timeout);
+        }
+        if (e.name === 'AbortError') throw new Error('Delai depasse — Supabase ne repond pas. Verifiez votre connexion ou que le projet n\'est pas en pause sur supabase.com');
+        throw e;
+    }
+}
+
+async function sbGet(table, params) {
+    const q = params ? '?' + params : '';
+    const res = await _sbFetch(SUPABASE_URL + '/rest/v1/' + table + q, { headers: SB_HEADERS });
+    if (!res.ok) throw new Error(await res.text());
+    return await res.json();
+}
+async function sbInsert(table, body, customHeaders, customTimeout) {
+    const res = await _sbFetch(SUPABASE_URL + '/rest/v1/' + table, {
+        method: 'POST', headers: customHeaders || SB_HEADERS, body: JSON.stringify(body)
+    }, 0, customTimeout || 20000);
+    if (!res.ok) throw new Error(await res.text());
+    // Certaines tables retournent un tableau vide sur succès — ne pas planter
+    try { return await res.json(); } catch(e) { return null; }
+}
+async function sbPatch(table, filter, body) {
+    const res = await _sbFetch(SUPABASE_URL + '/rest/v1/' + table + '?' + filter, {
+        method: 'PATCH', headers: SB_HEADERS, body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res;
+}
+async function sbDelete(table, filter) {
+    const res = await _sbFetch(SUPABASE_URL + '/rest/v1/' + table + '?' + filter, {
+        method: 'DELETE', headers: SB_HEADERS
+    });
+    if (!res.ok) throw new Error(await res.text());
+}
+
+// =====================================================
+// TOAST
+// =====================================================
+let _toastT;
+function toast(msg, color='#eee') {
+    const el = document.getElementById('toast');
+    el.innerText = msg; el.style.color = color; el.classList.add('show');
+    clearTimeout(_toastT);
+    _toastT = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// =====================================================
+// LOGIN
+// =====================================================
+function adminLogin() {
+    const pass  = document.getElementById('admin-pass').value;
+    const errEl = document.getElementById('login-error');
+    if (pass === ADMIN_PASSWORD) {
+        errEl.innerText = '';
+        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('dashboard').style.display     = 'block';
+        loadData();
+    } else {
+        errEl.innerText = '❌ Mot de passe incorrect';
+        document.getElementById('admin-pass').style.borderColor = 'red';
+        setTimeout(() => {
+            errEl.innerText = '';
+            document.getElementById('admin-pass').style.borderColor = '';
+        }, 2500);
+    }
+}
+
+// Attacher les événements via addEventListener (plus fiable que onclick inline)
+document.addEventListener('DOMContentLoaded', function() {
+    var btn = document.getElementById('btn-login');
+    if (btn) btn.addEventListener('click', adminLogin);
+
+    var inp = document.getElementById('admin-pass');
+    if (inp) inp.addEventListener('keyup', function(e) {
+        if (e.key === 'Enter') adminLogin();
+    });
+});
+
+// =====================================================
+// LOAD DATA
+// =====================================================
+var globalUsers = [], globalSources = [], globalChaines = [];
+
+async function loadData() {
+    try {
+        var results = await Promise.allSettled([
+            sbGet('utilisateurs', 'select=*&order=date_activation.desc'),
+            sbGet('sources', 'select=*&order=id.asc'),
+            sbGet('chaines', 'select=*&order=nom.asc'),
+            sbGet('config', 'id=eq.1&select=maintenance,message_accueil')
+        ]);
+        // ✅ Promise.allSettled : même si une requête échoue, les autres continuent
+        globalUsers   = (results[0].status === 'fulfilled' ? results[0].value : null) || [];
+        globalSources = (results[1].status === 'fulfilled' ? results[1].value : null) || [];
+        globalChaines = (results[2].status === 'fulfilled' ? results[2].value : null) || [];
+        var cfgResult = (results[3].status === 'fulfilled' ? results[3].value : null);
+        var cfg = cfgResult;
+
+        // STATS
+        var total  = globalUsers.length;
+        var vie    = globalUsers.filter(function(u){ return u.duree === 'VIE'; }).length;
+        var active = globalUsers.filter(function(u){ return u.duree === 'VIE' || parseInt(u.duree) > 0; }).length;
+        document.getElementById('st-total').innerText   = total;
+        document.getElementById('st-active').innerText  = active;
+        document.getElementById('st-vie').innerText     = vie;
+        document.getElementById('st-sources').innerText = globalSources.length;
+        document.getElementById('st-chaines').innerText = globalChaines.length;
+
+        // MAINTENANCE
+        if (cfg && cfg[0]) {
+            var on = cfg[0].maintenance === true;
+            var el = document.getElementById('maint-display');
+            el.innerText = on ? 'ACTIF ⛔' : 'INACTIF ✅';
+            el.className = 'maint-status ' + (on ? 'maint-on' : 'maint-off');
+            var msgInput = document.getElementById('global-msg-input');
+            if (msgInput) msgInput.value = cfg[0].message_accueil || '';
+        }
+
+        // USERS TABLE
+        var tbody = document.getElementById('users-body');
+        tbody.innerHTML = '';
+        globalUsers.forEach(function(u) {
+            var devCount = u.appareils ? u.appareils.split(',').filter(function(d){ return d.trim(); }).length : 0;
+            var isVie    = u.duree === 'VIE';
+            var days     = isVie ? '∞' : parseInt(u.duree);
+            var badgeCls = isVie ? 'badge-vie' : days > 0 ? 'badge-active' : 'badge-exp';
+            var badgeTxt = isVie ? 'À VIE' : days > 0 ? days + 'j' : 'EXPIRÉ';
+            var cle      = esc(u.cle);
+            var msg      = esc(u.message || '');
+            var scr      = u.max_ecrans || 1;
+            var tr = document.createElement('tr');
+            tr.innerHTML =
+                '<td style="font-weight:700;color:white;font-family:monospace;letter-spacing:1px;">' + cle + '</td>' +
+                '<td><span class="' + badgeCls + '">' + badgeTxt + '</span></td>' +
+                '<td>' + scr + '</td>' +
+                '<td style="color:#666;font-size:12px;">' + devCount + ' / ' + scr + ' connecté(s)</td>' +
+                '<td style="color:#555;font-size:11px;">' + (u.date_activation || '—') + '</td>' +
+                '<td style="color:#aaa;font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + msg + '">' + (msg || '—') + '</td>' +
+                '<td style="white-space:nowrap;">' +
+                    '<button class="action-btn btn-pdf"  onclick="generatePDF(\'' + cle + '\',\'' + u.duree + '\',\'' + scr + '\')" title="PDF"><i class="fas fa-file-pdf"></i></button> ' +
+                    '<button class="action-btn btn-edit" onclick="editUser(\'' + cle + '\',\'' + u.duree + '\',\'' + scr + '\',\'' + msg + '\')" title="Modifier"><i class="fas fa-edit"></i></button> ' +
+                    '<button class="action-btn btn-rst"  onclick="resetDevices(\'' + cle + '\')" title="Reset appareils"><i class="fas fa-unlock"></i></button> ' +
+                    '<button class="action-btn btn-del"  onclick="deleteUser(\'' + cle + '\')" title="Supprimer"><i class="fas fa-trash"></i></button>' +
+                '</td>';
+            tbody.appendChild(tr);
+        });
+
+        // SOURCES TABLE
+        var sBo = document.getElementById('sources-body');
+        sBo.innerHTML = '';
+        globalSources.forEach(function(s) {
+            var tr = document.createElement('tr');
+            tr.innerHTML =
+                '<td style="color:#555;font-size:12px;">' + s.id + '</td>' +
+                '<td style="font-weight:600;">' + esc(s.nom) + '</td>' +
+                '<td style="color:#666;font-size:11px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + esc(s.lien) + '">' + esc(s.lien) + '</td>' +
+                '<td><button class="action-btn btn-del" onclick="deleteSource(' + s.id + ')"><i class="fas fa-trash"></i></button></td>';
+            sBo.appendChild(tr);
+        });
+
+        // CHAÎNES TABLE
+        var cBo = document.getElementById('chaines-body');
+        cBo.innerHTML = '';
+        globalChaines.forEach(function(c) {
+            var statColor = c.statut === 'OK' ? '#2ecc71' : '#ff4444';
+            var tr = document.createElement('tr');
+            tr.innerHTML =
+                '<td style="font-weight:600;">' + esc(c.nom) + '</td>' +
+                '<td style="color:#666;font-size:11px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + esc(c.url_flux) + '">' + esc(c.url_flux) + '</td>' +
+                '<td><span style="background:rgba(255,255,255,.07);padding:2px 8px;border-radius:10px;font-size:11px;">' + esc(c.groupe||'—') + '</span></td>' +
+                '<td><span style="color:' + statColor + ';font-weight:700;font-size:12px;">' + esc(c.statut||'—') + '</span></td>' +
+                '<td>' +
+                    '<button class="action-btn btn-edit" onclick="editChaine(\'' + c.id + '\',\'' + esc(c.nom) + '\',\'' + esc(c.url_flux) + '\',\'' + esc(c.groupe||'') + '\',\'' + (c.statut||'OK') + '\')"><i class="fas fa-edit"></i></button> ' +
+                    '<button class="action-btn btn-del"  onclick="deleteChaine(\'' + c.id + '\')"><i class="fas fa-trash"></i></button>' +
+                '</td>';
+            cBo.appendChild(tr);
+        });
+
+        loadTarifs();
+
+    } catch(e) {
+        toast('❌ Erreur chargement : ' + e.message, '#ff6b6b');
+        console.error(e);
+    }
+}
+
+// XSS safety
+function esc(s) { var s2=String(s||''); s2=s2.replace(/"/g,'&quot;'); s2=s2.replace(/\x3C/g,'&lt;'); s2=s2.replace(/\x3E/g,'&gt;'); return s2; }
+
+// =====================================================
+// UTILISATEURS
+// =====================================================
+async function addUser() {
+    let key = document.getElementById('new-key').value.trim().toUpperCase();
+    if (!key) {
+        const c = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        let r = "";
+        for (let i = 0; i < 6; i++) r += c.charAt(Math.floor(Math.random() * c.length));
+        key = "BOX-" + r;
+    }
+    const days    = document.getElementById('new-days').value;
+    const screens = parseInt(document.getElementById('new-screens').value);
+    const msg     = document.getElementById('new-msg').value.trim();
+
+    if (!confirm('Créer l\'abonnement "' + key + '" (' + days + ' j / ' + screens + ' écran(s)) ?')) return;
+
+    try {
+        await sbInsert('utilisateurs', {
+            cle:              key,
+            duree:            days,
+            appareils:        '',
+            date_activation:  new Date().toISOString().split('T')[0],
+            max_ecrans:       screens,
+            message:          msg
+        });
+        toast('✅ Abonné ' + key + ' créé !', '#2ecc71');
+        generatePDF(key, days, screens);
+        document.getElementById('new-key').value  = '';
+        document.getElementById('new-msg').value  = '';
+        loadData();
+    } catch(e) {
+        toast('❌ ' + e.message, '#ff6b6b');
+    }
+}
+
+async function deleteUser(k) {
+    if (!confirm('Supprimer l\'abonné "' + k + '" définitivement ?')) return;
+    try {
+        await sbDelete('utilisateurs', 'cle=eq.' + encodeURIComponent(k));
+        toast('🗑 Abonné supprimé', '#ff6b6b');
+        loadData();
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+async function editUser(k, oldD, oldS, oldMsg) {
+    const d   = prompt('Durée (jours ou VIE) :', oldD);   if (d === null) return;
+    const s   = prompt('Nb écrans :', oldS);               if (s === null) return;
+    const msg = prompt('Message perso (opt.) :', oldMsg);  if (msg === null) return;
+    try {
+        await sbPatch('utilisateurs', 'cle=eq.' + encodeURIComponent(k), {
+            duree: d, max_ecrans: parseInt(s), message: msg
+        });
+        toast('✅ Abonné modifié', '#2ecc71');
+        loadData();
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+async function resetDevices(k) {
+    if (!confirm('Réinitialiser les appareils de "' + k + '" ?')) return;
+    try {
+        await sbPatch('utilisateurs', 'cle=eq.' + encodeURIComponent(k), { appareils: '' });
+        toast('🔓 Appareils réinitialisés', '#2ecc71');
+        loadData();
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+// =====================================================
+// SOURCES M3U
+// =====================================================
+async function addSource() {
+    const n = document.getElementById('new-source-name').value.trim();
+    const l = document.getElementById('new-source-link').value.trim();
+    if (!l) { toast('⚠️ Entrez un lien', '#ffd700'); return; }
+    try {
+        await sbInsert('sources', { nom: n || 'Source', lien: l });
+        toast('✅ Source ajoutée', '#2ecc71');
+        document.getElementById('new-source-name').value = '';
+        document.getElementById('new-source-link').value = '';
+        loadData();
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+async function deleteSource(id) {
+    if (!confirm('Supprimer cette source ?')) return;
+    try {
+        await sbDelete('sources', 'id=eq.' + id);
+        toast('🗑 Source supprimée', '#ff6b6b');
+        loadData();
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+// =====================================================
+// CHAÎNES DIRECTES
+// =====================================================
+async function addChaine() {
+    const nom    = document.getElementById('new-ch-nom').value.trim();
+    const url    = document.getElementById('new-ch-url').value.trim();
+    const groupe = document.getElementById('new-ch-groupe').value.trim();
+    const statut = document.getElementById('new-ch-statut').value;
+    if (!nom || !url) { toast('⚠️ Nom et URL obligatoires', '#ffd700'); return; }
+    // ✅ Vérification doublon par URL
+    if (globalChaines.some(function(c){ return c.url_flux === url; })) {
+        toast('⚠️ Cette URL existe déjà dans les chaînes directes', '#ffd700'); return;
+    }
+    try {
+        await sbInsert('chaines', { nom, url_flux: url, groupe: groupe || 'Général', statut });
+        toast('✅ Chaîne ajoutée', '#2ecc71');
+        document.getElementById('new-ch-nom').value    = '';
+        document.getElementById('new-ch-url').value    = '';
+        document.getElementById('new-ch-groupe').value = '';
+        loadData();
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+async function editChaine(id, oldNom, oldUrl, oldGroupe, oldStatut) {
+    const nom    = prompt('Nom :', oldNom);    if (nom === null) return;
+    const url    = prompt('URL flux :', oldUrl); if (url === null) return;
+    const groupe = prompt('Groupe :', oldGroupe); if (groupe === null) return;
+    const statut = prompt('Statut (OK / HS) :', oldStatut); if (statut === null) return;
+    try {
+        await sbPatch('chaines', 'id=eq.' + id, { nom, url_flux: url, groupe, statut: statut.toUpperCase() });
+        toast('✅ Chaîne modifiée', '#2ecc71');
+        loadData();
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+async function deleteChaine(id) {
+    if (!confirm('Supprimer cette chaîne ?')) return;
+    try {
+        await sbDelete('chaines', 'id=eq.' + id);
+        toast('🗑 Chaîne supprimée', '#ff6b6b');
+        loadData();
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+// =====================================================
+// MESSAGE D'ACCUEIL
+// =====================================================
+async function saveMessage() {
+    const msg = document.getElementById('global-msg-input').value.trim();
+    try {
+        await sbPatch('config', 'id=eq.1', { message_accueil: msg });
+        toast('✅ Message mis à jour', '#2ecc71');
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+// =====================================================
+// MAINTENANCE
+// =====================================================
+async function toggleMaintenance() {
+    const current = document.getElementById('maint-display').innerText.includes('ACTIF');
+    const newState = !current;
+    if (!confirm('Passer la maintenance à ' + (newState ? 'ON ⛔' : 'OFF ✅') + ' ?')) return;
+    try {
+        await sbPatch('config', 'id=eq.1', { maintenance: newState });
+        toast('Maintenance ' + (newState ? 'activée ⛔' : 'désactivée ✅'), newState ? '#ff6b6b' : '#2ecc71');
+        loadData();
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+// =====================================================
+// BACKUP CSV
+// =====================================================
+function downloadBackup() {
+    if (!globalUsers.length) { toast('⚠️ Aucune donnée', '#ffd700'); return; }
+    let csv = "CLE,DUREE,APPAREILS,DATE_ACTIVATION,MAX_ECRANS,MESSAGE\n";
+    globalUsers.forEach(u => {
+        csv += [u.cle, u.duree, u.appareils || '', u.date_activation || '', u.max_ecrans || 1, u.message || '']
+            .map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',') + '\n';
+    });
+    const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'backup_myboxtv_' + new Date().toISOString().slice(0,10) + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('💾 Backup téléchargé', '#2ecc71');
+}
+
+// =====================================================
+// TARIFS / ABONNEMENTS
+// =====================================================
+let globalTarifs = [];
+
+function openTarifModal(tarif) {
+    document.getElementById('tf-edit-id').value       = tarif ? tarif.id    : '';
+    document.getElementById('tf-label-ecran').value   = tarif ? tarif.label_ecran  : '';
+    document.getElementById('tf-label-duree').value   = tarif ? tarif.label_duree  : '';
+    document.getElementById('tf-screens').value       = tarif ? tarif.screens      : '';
+    document.getElementById('tf-days').value          = tarif ? tarif.days         : '';
+    document.getElementById('tf-prix').value          = tarif ? tarif.prix         : '';
+    document.getElementById('tf-prix-promo').value    = tarif && tarif.prix_promo  ? tarif.prix_promo : '';
+    document.getElementById('tf-badge').value         = tarif ? (tarif.badge || '') : '';
+    const color = (tarif && tarif.badge_color) ? tarif.badge_color : '#e50914';
+    document.getElementById('tf-badge-color').value   = color;
+    document.getElementById('tf-badge-color-text').value = color;
+    document.getElementById('tf-ordre').value         = tarif ? tarif.ordre        : '10';
+    document.getElementById('tf-actif').checked       = tarif ? tarif.actif        : true;
+    document.getElementById('tarif-modal-title').innerHTML = tarif
+        ? '<i class="fas fa-edit"></i> MODIFIER LE TARIF'
+        : '<i class="fas fa-plus"></i> NOUVEAU TARIF';
+    document.getElementById('tarif-modal-overlay').classList.add('open');
+    // ✅ Fix: oninput directement (pas addEventListener en double à chaque ouverture)
+    document.getElementById('tf-badge-color').oninput = function(){
+        document.getElementById('tf-badge-color-text').value = this.value;
+    };
+}
+
+function closeTarifModal() {
+    document.getElementById('tarif-modal-overlay').classList.remove('open');
+}
+
+async function saveTarif() {
+    const id         = document.getElementById('tf-edit-id').value;
+    const label_ecran = document.getElementById('tf-label-ecran').value.trim();
+    const label_duree = document.getElementById('tf-label-duree').value.trim();
+    const screens    = parseInt(document.getElementById('tf-screens').value);
+    const days       = parseInt(document.getElementById('tf-days').value);
+    const prix       = parseInt(document.getElementById('tf-prix').value);
+    const promoRaw   = document.getElementById('tf-prix-promo').value.trim();
+    const prix_promo = promoRaw ? parseInt(promoRaw) : null;
+    const badge      = document.getElementById('tf-badge').value.trim() || null;
+    const badge_color= document.getElementById('tf-badge-color-text').value.trim() || '#e50914';
+    const ordre      = parseInt(document.getElementById('tf-ordre').value) || 10;
+    const actif      = document.getElementById('tf-actif').checked;
+
+    if (!label_ecran || !label_duree || !screens || !days || !prix) {
+        toast('⚠️ Champs obligatoires manquants', '#ffd700'); return;
+    }
+    const payload = { screens, days, label_ecran, label_duree, prix, prix_promo, badge, badge_color, actif, ordre };
+
+    try {
+        if (id) {
+            await sbPatch('tarifs', 'id=eq.' + id, payload);
+            toast('✅ Tarif modifié', '#2ecc71');
+        } else {
+            await sbInsert('tarifs', payload);
+            toast('✅ Tarif ajouté', '#2ecc71');
+        }
+        closeTarifModal();
+        await loadTarifs();
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+async function deleteTarif(id) {
+    if (!confirm('Supprimer ce tarif définitivement ?')) return;
+    try {
+        await sbDelete('tarifs', 'id=eq.' + id);
+        toast('🗑 Tarif supprimé', '#ff6b6b');
+        await loadTarifs();
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+async function toggleTarifActif(tarif) {
+    try {
+        await sbPatch('tarifs', 'id=eq.' + tarif.id, { actif: !tarif.actif });
+        toast((!tarif.actif ? '✅ Tarif activé' : '⛔ Tarif désactivé'), '#2ecc71');
+        await loadTarifs();
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+async function loadTarifs() {
+    try {
+        globalTarifs = await sbGet('tarifs', 'select=*&order=ordre.asc');
+        renderTarifs();
+    } catch(e) { toast('⚠️ Tarifs : ' + e.message, '#ffd700'); }
+}
+
+function renderTarifs() {
+    // --- Cards ---
+    var grid = document.getElementById('tarifs-grid');
+    grid.innerHTML = '';
+    globalTarifs.forEach(function(t) {
+        var hasBadge  = t.badge && t.badge.trim();
+        var hasPromo  = t.prix_promo !== null && t.prix_promo !== undefined;
+        var priceShow = hasPromo ? t.prix_promo : t.prix;
+        var card = document.createElement('div');
+        card.className = 'tarif-card' + (t.actif ? '' : ' inactive');
+        var html = '';
+        if (hasBadge) html += '<span class="card-badge" style="background:' + esc(t.badge_color||'#e50914') + ';">' + esc(t.badge) + '</span>';
+        html += '<div style="font-size:12px;color:#666;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">' + esc(t.label_ecran) + ' — ' + esc(t.label_duree) + '</div>';
+        if (hasPromo) html += '<div class="card-price-old">' + Number(t.prix).toLocaleString('fr') + ' FCFA</div>';
+        html += '<div class="card-price">' + Number(priceShow).toLocaleString('fr') + ' <span style="font-size:14px;color:#888;">FCFA</span></div>';
+        html += '<div class="card-label">' + t.screens + ' écran(s) — ' + t.days + ' jours</div>';
+        html += '<div class="card-actions">';
+        html += '<button class="action-btn btn-edit" onclick="openTarifModal(globalTarifs.find(function(x){return x.id===' + t.id + '}))" title="Modifier"><i class="fas fa-edit"></i></button>';
+        html += '<button class="tf-toggle-btn" onclick="toggleTarifActif(globalTarifs.find(function(x){return x.id===' + t.id + '}))">' + (t.actif ? '<i class="fas fa-eye-slash"></i> Désactiver' : '<i class="fas fa-eye"></i> Activer') + '</button>';
+        html += '<button class="action-btn btn-del" onclick="deleteTarif(' + t.id + ')" title="Supprimer"><i class="fas fa-trash"></i></button>';
+        html += '</div>';
+        card.innerHTML = html;
+        grid.appendChild(card);
+    });
+
+    // --- Table ---
+    var tbody = document.getElementById('tarifs-body');
+    tbody.innerHTML = '';
+    globalTarifs.forEach(function(t) {
+        var hasPromo = t.prix_promo !== null && t.prix_promo !== undefined;
+        var tr = document.createElement('tr');
+        var badgeCell = t.badge
+            ? '<span style="background:' + esc(t.badge_color||'#e50914') + ';padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;">' + esc(t.badge) + '</span>'
+            : '<span style="color:#444">—</span>';
+        tr.innerHTML =
+            '<td style="color:#555;font-size:12px;">' + t.id + '</td>' +
+            '<td style="font-weight:700;">' + esc(t.label_ecran) + ' <span style="color:#666;font-weight:400;">/ ' + esc(t.label_duree) + '</span></td>' +
+            '<td>' + t.screens + '</td>' +
+            '<td>' + t.days + '</td>' +
+            '<td style="font-weight:700;color:#fff;">' + Number(t.prix).toLocaleString('fr') + ' FCFA</td>' +
+            '<td style="color:#e50914;">' + (hasPromo ? Number(t.prix_promo).toLocaleString('fr') + ' FCFA' : '<span style="color:#444">—</span>') + '</td>' +
+            '<td>' + badgeCell + '</td>' +
+            '<td style="color:#666;">' + t.ordre + '</td>' +
+            '<td><span style="color:' + (t.actif?'#2ecc71':'#ff4444') + ';font-weight:700;font-size:12px;">' + (t.actif?'✅ OUI':'⛔ NON') + '</span></td>' +
+            '<td style="white-space:nowrap;">' +
+                '<button class="action-btn btn-edit" onclick="openTarifModal(globalTarifs.find(function(x){return x.id===' + t.id + '}))" title="Modifier"><i class="fas fa-edit"></i></button>' +
+                '<button class="action-btn btn-del" onclick="deleteTarif(' + t.id + ')" title="Supprimer"><i class="fas fa-trash"></i></button>' +
+            '</td>';
+        tbody.appendChild(tr);
+    });
+}
+
+function showTab(id, e) {
+    // ✅ Fix: ne plus utiliser event global — crash si appelé sans contexte clic
+    var ev = e || window.event;
+    document.querySelectorAll('.section').forEach(function(s){ s.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    var sec = document.getElementById(id);
+    if (sec) sec.classList.add('active');
+    if (ev && ev.currentTarget) ev.currentTarget.classList.add('active');
+    else {
+        // Fallback : activer le bon bouton via data-tab
+        document.querySelectorAll('.tab-btn').forEach(function(b){
+            if (b.getAttribute('onclick') && b.getAttribute('onclick').includes("'" + id + "'")) b.classList.add('active');
+        });
+    }
+}
+
+// =====================================================
+// PDF GENERATOR (identique à l'original)
+// =====================================================
+function generatePDF(key, days, screens) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('fr-FR') + ' à ' + now.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+
+    doc.setFillColor(20, 20, 20); doc.rect(0, 0, 210, 42, 'F');
+    doc.setTextColor(255,255,255); doc.setFontSize(28); doc.setFont("helvetica","bold");
+    doc.text("MY BOX TV", 105, 20, { align: "center" });
+    doc.setFontSize(12); doc.setTextColor(229,9,20);
+    doc.text("CERTIFICAT D'ABONNEMENT", 105, 31, { align: "center" });
+    doc.setFontSize(9); doc.setTextColor(150,150,150);
+    doc.text("Émis le " + dateStr, 105, 39, { align: "center" });
+
+    doc.setTextColor(0,0,0); doc.setFontSize(14); doc.setFont("helvetica","normal");
+    doc.text("VOTRE ID DE CONNEXION :", 105, 60, { align: "center" });
+    doc.setFillColor(240,240,240); doc.setDrawColor(229,9,20); doc.setLineWidth(1.5); doc.rect(35, 65, 140, 27, 'FD');
+    doc.setFont("courier","bold"); doc.setFontSize(30); doc.setTextColor(229,9,20);
+    doc.text(key, 105, 83, { align: "center" });
+
+    doc.setFont("helvetica","normal"); doc.setTextColor(0,0,0); doc.setFontSize(12); doc.setLineWidth(0.1);
+    doc.text("VALIDITÉ : " + days + " Jours", 45, 106);
+    doc.text("ÉCRANS : " + screens, 125, 106);
+    doc.setDrawColor(200,200,200); doc.line(20, 115, 190, 115);
+
+    doc.setFontSize(14); doc.setFont("helvetica","bold"); doc.text("INSTRUCTIONS D'ACCÈS", 20, 128);
+    doc.setFontSize(11); doc.setFont("helvetica","normal");
+    doc.text("1. Connectez votre appareil à Internet.", 22, 140);
+    doc.text("2. Ouvrez l'application MY BOX TV.", 22, 150);
+    doc.text("3. Entrez votre ID ci-dessus dans le champ de connexion.", 22, 160);
+    doc.text("4. Profitez de +14.000 chaînes en HD/4K !", 22, 170);
+    doc.line(20, 180, 190, 180);
+
+    doc.setFontSize(9); doc.setTextColor(130,130,130); doc.setFont("helvetica","italic");
+    doc.text("Conservez précieusement cet ID. Ne le partagez pas. Valide sur " + screens + " appareil(s) simultané(s).", 105, 190, { align: "center" });
+
+    doc.setFillColor(245,245,245); doc.rect(0, 255, 210, 45, 'F');
+    doc.setTextColor(229,9,20); doc.setFontSize(12); doc.setFont("helvetica","bold");
+    doc.text("SUPPORT TECHNIQUE — WHATSAPP", 105, 268, { align: "center" });
+    doc.setTextColor(0,0,0); doc.setFont("helvetica","normal"); doc.setFontSize(14);
+    doc.text("63 82 87 67", 105, 280, { align: "center" });
+    doc.setFontSize(9); doc.setTextColor(150,150,150);
+    doc.text("www.myboxtv.com  —  Merci de votre confiance !", 105, 291, { align: "center" });
+}
+
+// =====================================================
+// UPDATER — MISES À JOUR APP
+// =====================================================
+function onCodeChange() {
+    const code  = document.getElementById('code-input').value;
+    const lines = code.split('\n').length;
+    const kb    = (new Blob([code]).size / 1024).toFixed(1);
+    document.getElementById('code-lines').innerText = lines.toLocaleString() + ' lignes';
+    document.getElementById('code-size').innerText  = kb + ' Ko';
+    document.getElementById('code-size').style.color = kb < 50 ? '#ffd700' : kb > 5000 ? '#e50914' : '#2ecc71';
+    // Auto-version
+    if (!document.getElementById('new-version').value.trim()) {
+        const n = new Date();
+        document.getElementById('new-version').value =
+            n.getFullYear() + '.' + String(n.getMonth()+1).padStart(2,'0') + '.' +
+            String(n.getDate()).padStart(2,'0') + '-' +
+            String(n.getHours()).padStart(2,'0') + String(n.getMinutes()).padStart(2,'0');
+    }
+}
+
+function clearCode() {
+    document.getElementById('code-input').value    = '';
+    document.getElementById('new-version').value   = '';
+    document.getElementById('release-note').value  = '';
+    onCodeChange();
+}
+
+async function loadCurrentCode() {
+    showUpdMsg('Chargement...', 'info');
+    try {
+        const data = await sbGet('app_updates', 'select=version,code,note&order=published_at.desc&limit=1');
+        if (data && data.length > 0) {
+            document.getElementById('code-input').value   = data[0].code;
+            document.getElementById('new-version').value  = '';
+            document.getElementById('release-note').value = '';
+            onCodeChange();
+            showUpdMsg('✓ Version ' + data[0].version + ' chargée.', 'success');
+        } else {
+            showUpdMsg('Aucune version en base.', 'error');
+        }
+    } catch(e) { showUpdMsg('Erreur : ' + e.message, 'error'); }
+}
+
+async function publishUpdate() {
+    const code    = document.getElementById('code-input').value.trim();
+    const version = document.getElementById('new-version').value.trim();
+    const note    = document.getElementById('release-note').value.trim() || 'Mise à jour';
+    if (!code)              { showUpdMsg('❌ Collez le code HTML.', 'error'); return; }
+    if (!version)           { showUpdMsg('❌ Entrez un numéro de version.', 'error'); return; }
+    if (code.length < 200)  { showUpdMsg('❌ Code trop court.', 'error'); return; }
+    if (!code.includes('</html>')) { showUpdMsg('⚠️ Pas de </html> détecté.', 'error'); return; }
+
+    const kb  = (new Blob([code]).size / 1024).toFixed(1);
+    const btn = document.getElementById('btn-publish-upd');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PUBLICATION...';
+    btn.disabled  = true;
+    showUpdMsg('⏳ Publication en cours (' + kb + ' Ko)… Patientez.', 'info');
+
+    try {
+        // return=minimal : Supabase n'envoie pas le code en réponse → pas de double transfert
+        // timeout 120 000 ms : suffisant même pour 70 000+ lignes
+        await sbInsert('app_updates', {
+            version, code, note,
+            size_kb: parseFloat(kb),
+            published_at: new Date().toISOString()
+        }, SB_HEADERS_MINIMAL, 120000);
+        showUpdMsg('🚀 Version ' + version + ' publiée ! Tous les clients se mettront à jour automatiquement.', 'success');
+        document.getElementById('new-version').value  = '';
+        document.getElementById('release-note').value = '';
+        loadHistory();
+    } catch(e) {
+        showUpdMsg('❌ Erreur : ' + e.message, 'error');
+    } finally {
+        btn.innerHTML = '<i class="fas fa-rocket"></i> PUBLIER LA MISE À JOUR';
+        btn.disabled  = false;
+    }
+}
+
+async function loadHistory() {
+    const container = document.getElementById('history-list');
+    if (!container) return;
+    container.innerHTML = '<div style="text-align:center;color:#444;padding:14px;font-size:12px;"><i class="fas fa-spinner fa-spin"></i> Chargement...</div>';
+    try {
+        const data = await sbGet('app_updates', 'select=id,version,note,size_kb,published_at&order=published_at.desc&limit=20');
+        if (!data || data.length === 0) {
+            container.innerHTML = '<div style="text-align:center;color:#444;padding:16px;font-size:12px;">Aucune version publiée.</div>';
+            return;
+        }
+        if (document.getElementById('upd-stat-version')) {
+            document.getElementById('upd-stat-version').innerText = data[0].version;
+            document.getElementById('upd-stat-total').innerText   = data.length;
+            document.getElementById('upd-stat-size').innerText    = (data[0].size_kb||0).toFixed(0) + 'Ko';
+        }
+        container.innerHTML = '';
+        data.forEach((row, i) => {
+            const date = row.published_at ? new Date(row.published_at).toLocaleString('fr-FR') : '—';
+            const kb   = row.size_kb ? row.size_kb.toFixed(0) + ' Ko' : '—';
+            const div  = document.createElement('div');
+            div.className = 'upd-history-row';
+            div.innerHTML =
+                '<span class="upd-v-badge">v' + row.version + '</span>' +
+                '<span class="upd-v-note">' + (row.note || '—') + '</span>' +
+                '<span class="upd-v-size">' + kb + '</span>' +
+                '<span class="upd-v-date">' + date + '</span>' +
+                (i > 0
+                    ? '<button class="action-btn btn-del" style="margin-left:8px;" onclick="deleteVersion(' + row.id + ',\'' + row.version + '\')"><i class="fas fa-trash"></i></button>'
+                    : '<span style="width:36px;"></span>');
+            container.appendChild(div);
+        });
+    } catch(e) {
+        container.innerHTML = '<div style="text-align:center;color:#e50914;padding:14px;font-size:12px;">Erreur : ' + e.message + '</div>';
+    }
+}
+
+async function deleteVersion(id, version) {
+    if (!confirm('Supprimer la version ' + version + ' ?')) return;
+    try {
+        await sbDelete('app_updates', 'id=eq.' + id);
+        toast('🗑 Version supprimée', '#ff6b6b');
+        loadHistory();
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+function showUpdMsg(msg, type) {
+    const el = document.getElementById('publish-msg-upd');
+    el.innerText = msg;
+    el.className = type;
+    el.style.display = 'block';
+    if (type === 'success') setTimeout(() => { el.style.display = 'none'; }, 6000);
+}
+
+// =====================================================
+// PRIORITÉ CHAÎNES — toutes les fonctions
+// =====================================================
+let prioAllChannels  = [];
+let prioURLs         = [];
+let prioLeftFiltered = [];
+let prioDragSrcIdx   = -1;
+let _prioCurrentVersion = '';
+const PRIO_BATCH = 60;
+let _prioLeftOffset = 0;
+let _prioScrollObserver = null;
+let _prioHls = null, _prioMuted = false, _prioCurrentPlayUrl = '';
+let _prioLoaded = false;
+let _prioLeftSel  = new Set();
+let _prioRightSel = new Set();
+// ✅ FIX CRITIQUE : Map pour lookups O(1) au lieu de O(n) find() en boucle
+let _prioChannelMap = new Map(); // url → channel object
+// ── QUARANTAINE ──
+let prioQuarantined = []; // chaînes en quarantaine (restaurables)
+// ── SHIFT+CLICK ──
+let _prioLastClickedLeft  = -1;
+let _prioLastClickedRight = -1;
+// ── DELETE MODAL ──
+let _prioDeleteModalSide = '';
+let _prioDeleteModalSingleUrl = '';
+// ✅ FIX CRITIQUE : virtualisation colonne droite
+const PRIO_BATCH_RIGHT = 80;
+let _prioRightFiltered = [];
+let _prioRightOffset   = 0;
+let _prioRightScrollObserver = null;
+// ✅ NOUVEAU : état de tri des deux colonnes (false = ordre original, true = A→Z, null = Z→A)
+let _prioLeftSortAZ  = false; // false = ordre original, true = A→Z, null = Z→A
+let _prioRightSortAZ = false;
+
+// ── HISTORIQUE UNDO/REDO ──
+let _prioHistory = [];   // pile annuler
+let _prioFuture  = [];   // pile rétablir
+let _prioCtxTarget = null; // { ch, side, index }
+
+// ✅ FIX CRITIQUE : reconstruction O(n) unique du Map url→channel
+function _prioBuildMap() {
+    _prioChannelMap = new Map();
+    prioAllChannels.forEach(function(c){ if (c && c.url) _prioChannelMap.set(c.url, c); });
+}
+
+function prioSaveState() {
+    _prioHistory.push(prioURLs.slice()); // ✅ .slice() plus léger que spread sur grandes listes
+    if (_prioHistory.length > 50) _prioHistory.shift(); // ✅ limiter à 50 états max (mémoire)
+    _prioFuture = [];
+    _prioUpdateUndoRedo();
+}
+function prioUndo() {
+    if (!_prioHistory.length) return;
+    _prioFuture.push(prioURLs.slice());
+    prioURLs = _prioHistory.pop();
+    _prioUpdateUndoRedo();
+    prioMarkDirty(); prioRenderRight(); prioFilterLeft();
+    toast('↩ Annulé', '#0af');
+}
+function prioRedo() {
+    if (!_prioFuture.length) return;
+    _prioHistory.push(prioURLs.slice());
+    prioURLs = _prioFuture.pop();
+    _prioUpdateUndoRedo();
+    prioMarkDirty(); prioRenderRight(); prioFilterLeft();
+    toast('↪ Rétabli', '#0af');
+}
+function _prioUpdateUndoRedo() {
+    const u = document.getElementById('prio-btn-undo');
+    const r = document.getElementById('prio-btn-redo');
+    if (u) u.disabled = !_prioHistory.length;
+    if (r) r.disabled = !_prioFuture.length;
+}
+
+// ── SÉLECTION COLONNE GAUCHE ──
+function _prioUpdateLeftSelBar() {
+    const n   = _prioLeftSel.size;
+    const bar = document.getElementById('prio-left-sel-bar');
+    const ca  = document.getElementById('prio-left-check-all');
+    document.getElementById('prio-left-sel-count').innerText = n + ' sélectionnée(s)';
+    bar.classList.toggle('show', n > 0);
+    if (ca) ca.indeterminate = n > 0 && n < prioLeftFiltered.length;
+    if (ca) ca.checked = n > 0 && n >= prioLeftFiltered.length;
+}
+function prioToggleSelectAllLeft(checked) {
+    _prioLeftSel.clear();
+    if (checked) prioLeftFiltered.forEach(ch => _prioLeftSel.add(ch.url));
+    document.querySelectorAll('#prio-left-list .prio-ch-check').forEach(cb => {
+        cb.checked = checked;
+        cb.closest('.prio-ch-item').classList.toggle('selected', checked);
+    });
+    _prioUpdateLeftSelBar();
+}
+function prioDeselectAllLeft() {
+    _prioLeftSel.clear();
+    document.querySelectorAll('#prio-left-list .prio-ch-check').forEach(cb => { cb.checked = false; cb.closest('.prio-ch-item').classList.remove('selected'); });
+    const ca = document.getElementById('prio-left-check-all'); if (ca) { ca.checked = false; ca.indeterminate = false; }
+    _prioUpdateLeftSelBar();
+}
+function prioAddSelectionToPrio() {
+    if (!_prioLeftSel.size) return;
+    prioSaveState();
+    const added = _prioLeftSel.size;
+    // Respecter l'ordre visuel : itérer prioLeftFiltered dans l'ordre inverse pour unshift
+    const toAdd = prioLeftFiltered.filter(ch => _prioLeftSel.has(ch.url)).reverse();
+    toAdd.forEach(ch => { if (!prioURLs.includes(ch.url)) prioURLs.unshift(ch.url); });
+    _prioLeftSel.clear();
+    prioMarkDirty(); prioRenderRight(); prioFilterLeft();
+    toast('✅ ' + added + ' chaîne(s) déplacées en priorité', '#2ecc71');
+}
+
+// ── SÉLECTION COLONNE DROITE ──
+function _prioUpdateRightSelBar() {
+    const n   = _prioRightSel.size;
+    const bar = document.getElementById('prio-right-sel-bar');
+    const ca  = document.getElementById('prio-right-check-all');
+    document.getElementById('prio-right-sel-count').innerText = n + ' sélectionnée(s)';
+    bar.classList.toggle('show', n > 0);
+    if (ca) ca.indeterminate = n > 0 && n < prioURLs.length;
+    if (ca) ca.checked = n > 0 && n >= prioURLs.length;
+}
+function prioToggleSelectAllRight(checked) {
+    _prioRightSel.clear();
+    if (checked) prioURLs.forEach(u => _prioRightSel.add(u));
+    document.querySelectorAll('#prio-right-list .prio-ch-check').forEach(cb => {
+        cb.checked = checked;
+        cb.closest('.prio-ch-item').classList.toggle('selected', checked);
+    });
+    _prioUpdateRightSelBar();
+}
+function prioDeselectAllRight() {
+    _prioRightSel.clear();
+    document.querySelectorAll('#prio-right-list .prio-ch-check').forEach(cb => { cb.checked = false; cb.closest('.prio-ch-item').classList.remove('selected'); });
+    const ca = document.getElementById('prio-right-check-all'); if (ca) { ca.checked = false; ca.indeterminate = false; }
+    _prioUpdateRightSelBar();
+}
+function prioRemoveSelectionFromPrio() {
+    if (!_prioRightSel.size) return;
+    prioSaveState();
+    const removed = _prioRightSel.size;
+    prioURLs = prioURLs.filter(u => !_prioRightSel.has(u));
+    _prioRightSel.clear();
+    prioMarkDirty(); prioRenderRight(); prioFilterLeft();
+    toast('↩ ' + removed + ' chaîne(s) déplacées vers toutes les chaînes', '#0af');
+}
+function prioMoveSelectionRight(dir) {
+    if (!_prioRightSel.size) return;
+    prioSaveState();
+    const sel = new Set(_prioRightSel);
+    // Déplacer d'un cran : traiter dans l'ordre correct selon direction
+    const indices = prioURLs.map((u, i) => sel.has(u) ? i : -1).filter(i => i >= 0);
+    if (dir === -1) {
+        for (const i of indices) {
+            const n = i - 1;
+            if (n >= 0 && !sel.has(prioURLs[n])) { [prioURLs[i], prioURLs[n]] = [prioURLs[n], prioURLs[i]]; }
+        }
+    } else {
+        for (let k = indices.length - 1; k >= 0; k--) {
+            const i = indices[k], n = i + 1;
+            if (n < prioURLs.length && !sel.has(prioURLs[n])) { [prioURLs[i], prioURLs[n]] = [prioURLs[n], prioURLs[i]]; }
+        }
+    }
+    prioMarkDirty(); prioRenderRight();
+    // Restaurer la sélection après re-render
+    setTimeout(() => {
+        document.querySelectorAll('#prio-right-list .prio-ch-check').forEach(cb => {
+            if (sel.has(cb.dataset.url)) { cb.checked = true; cb.closest('.prio-ch-item').classList.add('selected'); }
+        });
+        _prioRightSel.clear(); sel.forEach(u => _prioRightSel.add(u));
+        _prioUpdateRightSelBar();
+    }, 0);
+}
+function prioShowCtxMenu(e, ch, side, index) {
+    e.preventDefault(); e.stopPropagation();
+    _prioCtxTarget = { ch, side, index };
+    const m = document.getElementById('prio-ctx-menu');
+    const isRight = side === 'right';
+    const isLeft  = side === 'left';
+
+    // ── Options DROITE (réordonner dans prioritaires) ──
+    const elTop    = document.getElementById('ctx-top');
+    const elMiddle = document.getElementById('ctx-middle');
+    const elRank   = document.getElementById('ctx-rank');
+    const elBottom = document.getElementById('ctx-bottom');
+    const sepReorder = document.getElementById('ctx-sep-reorder');
+
+    elTop.style.display    = isRight ? 'flex' : 'none';
+    elMiddle.style.display = isRight ? 'flex' : 'none';
+    elRank.style.display   = isRight ? 'flex' : 'none';
+    elBottom.style.display = isRight ? 'flex' : 'none';
+    sepReorder.style.display = isRight ? 'block' : 'none';
+
+    elTop.classList.toggle('ctx-disabled',    isRight && index === 0);
+    elMiddle.classList.toggle('ctx-disabled', isRight && prioURLs.length < 3);
+    elBottom.classList.toggle('ctx-disabled', isRight && index === prioURLs.length - 1);
+
+    // ── Options GAUCHE (ajouter en priorité depuis toutes les chaînes) ──
+    const elAddTop    = document.getElementById('ctx-add-top');
+    const elAddMiddle = document.getElementById('ctx-add-middle');
+    const elAddRank   = document.getElementById('ctx-add-rank');
+    const elAddBottom = document.getElementById('ctx-add-bottom');
+    const sepAdd = document.getElementById('ctx-sep-add');
+
+    elAddTop.style.display    = isLeft ? 'flex' : 'none';
+    elAddMiddle.style.display = isLeft ? 'flex' : 'none';
+    elAddRank.style.display   = isLeft ? 'flex' : 'none';
+    elAddBottom.style.display = isLeft ? 'flex' : 'none';
+    sepAdd.style.display      = isLeft ? 'block' : 'none';
+
+    // ── Retirer (droite seulement) ──
+    document.getElementById('ctx-remove').style.display = isRight ? 'flex' : 'none';
+
+    // ── Quarantaine / Suppression (gauche + droite) ──
+    document.getElementById('ctx-quarantine').style.display = 'flex';
+    document.getElementById('ctx-delete').style.display     = 'flex';
+
+    // ── Position ──
+    const menuH = 380;
+    const x = Math.min(e.clientX, window.innerWidth  - 230);
+    const y = Math.min(e.clientY, window.innerHeight - menuH);
+    m.style.left = x + 'px';
+    m.style.top  = Math.max(4, y) + 'px';
+    m.classList.add('open');
+}
+function prioHideCtxMenu() { document.getElementById('prio-ctx-menu').classList.remove('open'); _prioCtxTarget = null; }
+
+document.addEventListener('click', () => prioHideCtxMenu());
+document.addEventListener('keydown', e => {
+    // Undo/Redo seulement si l'onglet priorité est actif
+    const sec = document.getElementById('priorite-section');
+    if (!sec || !sec.classList.contains('active')) return;
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') { e.preventDefault(); prioUndo(); }
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) { e.preventDefault(); prioRedo(); }
+    if (e.key === 'Escape') { prioHideCtxMenu(); prioCloseDeleteModal(); }
+});
+
+// ── Boutons menu contextuel ─────────────────────────────────
+// ✅ FIX CRASH: on enveloppe dans DOMContentLoaded pour garantir que le DOM est prêt
+//    même sur Chrome avec de gros fichiers HTML (évite null.onclick → crash script entier)
+document.addEventListener('DOMContentLoaded', function() {
+
+// DROITE : mettre en haut
+var _el_ctx_top = document.getElementById('ctx-top');
+if (_el_ctx_top) _el_ctx_top.onclick = function() {
+    if (!_prioCtxTarget) return;
+    const { ch } = _prioCtxTarget;
+    prioSaveState();
+    prioURLs = [ch.url, ...prioURLs.filter(u => u !== ch.url)];
+    prioMarkDirty(); prioRenderRight(); prioFilterLeft(); prioHideCtxMenu();
+    toast('⬆ "' + ch.name + '" mis en haut', '#ffd700');
+};
+
+// DROITE : mettre au centre
+var _el_ctx_middle = document.getElementById('ctx-middle');
+if (_el_ctx_middle) _el_ctx_middle.onclick = function() {
+    if (!_prioCtxTarget) return;
+    const { ch } = _prioCtxTarget;
+    prioSaveState();
+    const mid = Math.floor(prioURLs.length / 2);
+    prioURLs = prioURLs.filter(u => u !== ch.url);
+    prioURLs.splice(mid, 0, ch.url);
+    prioMarkDirty(); prioRenderRight(); prioFilterLeft(); prioHideCtxMenu();
+    toast('↕ "' + ch.name + '" mis au centre (rang ' + (mid + 1) + ')', '#0af');
+};
+
+// DROITE : choisir le rang
+var _el_ctx_rank = document.getElementById('ctx-rank');
+if (_el_ctx_rank) _el_ctx_rank.onclick = function() {
+    if (!_prioCtxTarget) return;
+    const { ch, index } = _prioCtxTarget;
+    prioHideCtxMenu();
+    const r = prompt('Rang pour "' + ch.name + '" (1 — ' + prioURLs.length + ') :', index + 1);
+    if (r === null) return;
+    const n = parseInt(r) - 1;
+    if (isNaN(n) || n < 0 || n >= prioURLs.length) { toast('⚠️ Rang invalide', '#ffd700'); return; }
+    prioSaveState();
+    prioURLs.splice(index, 1);
+    prioURLs.splice(n, 0, ch.url);
+    prioMarkDirty(); prioRenderRight(); prioFilterLeft();
+    toast('# "' + ch.name + '" déplacée au rang ' + (n + 1), '#ffd700');
+};
+
+// DROITE : mettre en bas
+var _el_ctx_bottom = document.getElementById('ctx-bottom');
+if (_el_ctx_bottom) _el_ctx_bottom.onclick = function() {
+    if (!_prioCtxTarget) return;
+    const { ch } = _prioCtxTarget;
+    prioSaveState();
+    prioURLs = [...prioURLs.filter(u => u !== ch.url), ch.url];
+    prioMarkDirty(); prioRenderRight(); prioFilterLeft(); prioHideCtxMenu();
+    toast('⬇ "' + ch.name + '" mis en bas', '#ffd700');
+};
+
+// GAUCHE : ajouter en haut des prioritaires
+var _el_ctx_add_top = document.getElementById('ctx-add-top');
+if (_el_ctx_add_top) _el_ctx_add_top.onclick = function() {
+    if (!_prioCtxTarget) return;
+    const { ch } = _prioCtxTarget;
+    if (prioURLs.includes(ch.url)) { toast('⚠️ Déjà en priorité', '#ffd700'); prioHideCtxMenu(); return; }
+    prioSaveState();
+    prioURLs.unshift(ch.url);
+    prioMarkDirty(); prioRenderRight(); prioFilterLeft(); prioHideCtxMenu();
+    toast('⬆ "' + ch.name + '" ajoutée en haut des prioritaires', '#2ecc71');
+};
+
+// GAUCHE : ajouter au centre des prioritaires
+var _el_ctx_add_middle = document.getElementById('ctx-add-middle');
+if (_el_ctx_add_middle) _el_ctx_add_middle.onclick = function() {
+    if (!_prioCtxTarget) return;
+    const { ch } = _prioCtxTarget;
+    if (prioURLs.includes(ch.url)) { toast('⚠️ Déjà en priorité', '#ffd700'); prioHideCtxMenu(); return; }
+    prioSaveState();
+    const mid = Math.floor(prioURLs.length / 2);
+    prioURLs.splice(mid, 0, ch.url);
+    prioMarkDirty(); prioRenderRight(); prioFilterLeft(); prioHideCtxMenu();
+    toast('↕ "' + ch.name + '" ajoutée au centre (rang ' + (mid + 1) + ')', '#2ecc71');
+};
+
+// GAUCHE : ajouter à un rang personnalisé
+var _el_ctx_add_rank = document.getElementById('ctx-add-rank');
+if (_el_ctx_add_rank) _el_ctx_add_rank.onclick = function() {
+    if (!_prioCtxTarget) return;
+    const { ch } = _prioCtxTarget;
+    if (prioURLs.includes(ch.url)) { toast('⚠️ Déjà en priorité', '#ffd700'); prioHideCtxMenu(); return; }
+    prioHideCtxMenu();
+    const total = prioURLs.length + 1; // +1 car elle va s'ajouter
+    const r = prompt('À quel rang ajouter "' + ch.name + '" ?\n(1 = tout en haut, ' + total + ' = tout en bas)', '1');
+    if (r === null) return;
+    const n = parseInt(r) - 1;
+    if (isNaN(n) || n < 0 || n > prioURLs.length) { toast('⚠️ Rang invalide (1 — ' + total + ')', '#ffd700'); return; }
+    prioSaveState();
+    prioURLs.splice(n, 0, ch.url);
+    prioMarkDirty(); prioRenderRight(); prioFilterLeft();
+    toast('# "' + ch.name + '" ajoutée au rang ' + (n + 1), '#2ecc71');
+};
+
+// GAUCHE : ajouter en bas des prioritaires
+var _el_ctx_add_bottom = document.getElementById('ctx-add-bottom');
+if (_el_ctx_add_bottom) _el_ctx_add_bottom.onclick = function() {
+    if (!_prioCtxTarget) return;
+    const { ch } = _prioCtxTarget;
+    if (prioURLs.includes(ch.url)) { toast('⚠️ Déjà en priorité', '#ffd700'); prioHideCtxMenu(); return; }
+    prioSaveState();
+    prioURLs.push(ch.url);
+    prioMarkDirty(); prioRenderRight(); prioFilterLeft(); prioHideCtxMenu();
+    toast('⬇ "' + ch.name + '" ajoutée en bas des prioritaires', '#2ecc71');
+};
+
+// DROITE : retirer des prioritaires
+var _el_ctx_remove = document.getElementById('ctx-remove');
+if (_el_ctx_remove) _el_ctx_remove.onclick = function() {
+    if (!_prioCtxTarget) return;
+    const { ch } = _prioCtxTarget;
+    prioRemoveFromPrio(ch.url); prioHideCtxMenu();
+};
+
+// Tester (gauche + droite)
+var _el_ctx_test = document.getElementById('ctx-test');
+if (_el_ctx_test) _el_ctx_test.onclick = function() {
+    if (!_prioCtxTarget) return;
+    prioTestChannel(_prioCtxTarget.ch); prioHideCtxMenu();
+};
+
+// Quarantaine (gauche + droite depuis ctx menu)
+var _el_ctx_quarantine = document.getElementById('ctx-quarantine');
+if (_el_ctx_quarantine) _el_ctx_quarantine.onclick = function() {
+    if (!_prioCtxTarget) return;
+    prioQuarantineChannel(_prioCtxTarget.ch.url); prioHideCtxMenu();
+};
+
+// Supprimer définitivement (gauche + droite depuis ctx menu)
+var _el_ctx_delete = document.getElementById('ctx-delete');
+if (_el_ctx_delete) _el_ctx_delete.onclick = function() {
+    if (!_prioCtxTarget) return;
+    const url = _prioCtxTarget.ch.url;
+    const ch  = _prioCtxTarget.ch;
+    prioHideCtxMenu();
+    _prioDeleteModalSide = '';
+    _prioDeleteModalSingleUrl = url;
+    document.getElementById('prio-delete-modal-count').innerText = '1';
+    const btn = document.getElementById('prio-delete-modal-confirm');
+    btn.onclick = function() { prioCloseDeleteModal(); prioDeleteSingleChannel(url); };
+    document.getElementById('prio-delete-modal-overlay').classList.add('open');
+};
+
+}); // ✅ fin DOMContentLoaded — ctx menu handlers
+
+// ── SUPPRESSION DÉFINITIVE ──────────────────────────────────────────────
+function prioOpenDeleteModal(side) {
+    const sel = side === 'left' ? _prioLeftSel : _prioRightSel;
+    if (!sel.size) return;
+    _prioDeleteModalSide = side;
+    _prioDeleteModalSingleUrl = '';
+    document.getElementById('prio-delete-modal-count').innerText = sel.size;
+    const btn = document.getElementById('prio-delete-modal-confirm');
+    btn.onclick = function() { prioCloseDeleteModal(); prioDeleteSelectionConfirmed(side); };
+    document.getElementById('prio-delete-modal-overlay').classList.add('open');
+}
+function prioCloseDeleteModal() {
+    document.getElementById('prio-delete-modal-overlay').classList.remove('open');
+}
+function prioDeleteSelectionConfirmed(side) {
+    const sel = side === 'left' ? _prioLeftSel : _prioRightSel;
+    if (!sel.size) return;
+    const count = sel.size;
+    const urlsToDelete = new Set(sel);
+    prioAllChannels = prioAllChannels.filter(function(ch) { return !urlsToDelete.has(ch.url); });
+    prioURLs = prioURLs.filter(function(u) { return !urlsToDelete.has(u); });
+    _prioBuildMap();
+    sel.clear();
+    _prioLastClickedLeft = -1; _prioLastClickedRight = -1;
+    if (side === 'left') _prioUpdateLeftSelBar(); else _prioUpdateRightSelBar();
+    prioMarkDirty(); prioFilterLeft(); prioRenderRight(); prioUpdateStats();
+    document.getElementById('prio-st-total').innerText = prioAllChannels.length.toLocaleString('fr');
+    toast('🗑 ' + count + ' chaîne(s) supprimées définitivement', '#ff6b6b');
+}
+function prioDeleteSingleChannel(url) {
+    const ch = _prioChannelMap.get(url);
+    prioAllChannels = prioAllChannels.filter(function(c) { return c.url !== url; });
+    prioURLs = prioURLs.filter(function(u) { return u !== url; });
+    _prioBuildMap();
+    prioMarkDirty(); prioFilterLeft(); prioRenderRight(); prioUpdateStats();
+    document.getElementById('prio-st-total').innerText = prioAllChannels.length.toLocaleString('fr');
+    toast('🗑 ' + (ch ? '"' + ch.name + '"' : 'Chaîne') + ' supprimée définitivement', '#ff6b6b');
+}
+// Fermer la modale si on clique en dehors
+document.getElementById('prio-delete-modal-overlay').addEventListener('click', function(e) {
+    if (e.target === this) prioCloseDeleteModal();
+});
+
+// ── QUARANTAINE ─────────────────────────────────────────────────────────
+function prioQuarantineSelection(side) {
+    const sel = side === 'left' ? _prioLeftSel : _prioRightSel;
+    if (!sel.size) return;
+    const urlsToQ = new Set(sel);
+    const toQ = prioAllChannels.filter(function(ch) { return urlsToQ.has(ch.url); });
+    toQ.forEach(function(ch) { if (!prioQuarantined.some(function(q) { return q.url === ch.url; })) prioQuarantined.push(ch); });
+    prioAllChannels = prioAllChannels.filter(function(ch) { return !urlsToQ.has(ch.url); });
+    prioURLs = prioURLs.filter(function(u) { return !urlsToQ.has(u); });
+    _prioBuildMap();
+    sel.clear();
+    _prioLastClickedLeft = -1; _prioLastClickedRight = -1;
+    if (side === 'left') _prioUpdateLeftSelBar(); else _prioUpdateRightSelBar();
+    prioMarkDirty(); prioFilterLeft(); prioRenderRight(); prioUpdateStats();
+    document.getElementById('prio-st-total').innerText = prioAllChannels.length.toLocaleString('fr');
+    prioRenderQuarantine();
+    toast('🚫 ' + toQ.length + ' chaîne(s) mises en quarantaine', '#ff7800');
+}
+function prioQuarantineChannel(url) {
+    const ch = _prioChannelMap.get(url);
+    if (!ch) return;
+    if (!prioQuarantined.some(function(q) { return q.url === url; })) prioQuarantined.push(ch);
+    prioAllChannels = prioAllChannels.filter(function(c) { return c.url !== url; });
+    prioURLs = prioURLs.filter(function(u) { return u !== url; });
+    _prioBuildMap();
+    prioMarkDirty(); prioFilterLeft(); prioRenderRight(); prioUpdateStats();
+    document.getElementById('prio-st-total').innerText = prioAllChannels.length.toLocaleString('fr');
+    prioRenderQuarantine();
+    toast('🚫 "' + ch.name + '" mise en quarantaine', '#ff7800');
+}
+function prioRestoreFromQuarantine(url) {
+    const idx = prioQuarantined.findIndex(function(q) { return q.url === url; });
+    if (idx === -1) return;
+    const ch = prioQuarantined.splice(idx, 1)[0];
+    prioAllChannels.push(ch);
+    _prioChannelMap.set(ch.url, ch);
+    prioMarkDirty(); prioFilterLeft(); prioRenderQuarantine(); prioUpdateStats();
+    document.getElementById('prio-st-total').innerText = prioAllChannels.length.toLocaleString('fr');
+    toast('✅ "' + ch.name + '" restaurée', '#2ecc71');
+}
+function prioRestoreAllFromQuarantine() {
+    if (!prioQuarantined.length) return;
+    prioQuarantined.forEach(function(ch) {
+        prioAllChannels.push(ch);
+        _prioChannelMap.set(ch.url, ch);
+    });
+    const n = prioQuarantined.length;
+    prioQuarantined = [];
+    prioMarkDirty(); prioFilterLeft(); prioRenderQuarantine(); prioUpdateStats();
+    document.getElementById('prio-st-total').innerText = prioAllChannels.length.toLocaleString('fr');
+    toast('✅ ' + n + ' chaîne(s) restaurées', '#2ecc71');
+}
+function prioDeleteFromQuarantine(url) {
+    const idx = prioQuarantined.findIndex(function(q) { return q.url === url; });
+    if (idx === -1) return;
+    const ch = prioQuarantined.splice(idx, 1)[0];
+    prioRenderQuarantine();
+    toast('🗑 "' + ch.name + '" supprimée définitivement', '#ff6b6b');
+}
+function prioEmptyQuarantine() {
+    if (!prioQuarantined.length) return;
+    if (!confirm('Supprimer définitivement les ' + prioQuarantined.length + ' chaînes en quarantaine ?\nCette action est irréversible.')) return;
+    const n = prioQuarantined.length;
+    prioQuarantined = [];
+    prioRenderQuarantine();
+    toast('🗑 ' + n + ' chaînes supprimées définitivement de la quarantaine', '#ff6b6b');
+}
+function prioToggleQuarantineBody() {
+    const body = document.getElementById('prio-quarantine-body');
+    const chev = document.getElementById('prio-quarantine-chevron');
+    const open = body.style.display === 'block';
+    body.style.display = open ? 'none' : 'block';
+    if (chev) chev.style.transform = open ? '' : 'rotate(180deg)';
+}
+function prioRenderQuarantine() {
+    const panel  = document.getElementById('prio-quarantine-panel');
+    const list   = document.getElementById('prio-quarantine-list');
+    const badge  = document.getElementById('prio-quarantine-badge');
+    if (badge) badge.innerText = prioQuarantined.length;
+    if (!prioQuarantined.length) { panel.style.display = 'none'; return; }
+    panel.style.display = 'block';
+    list.innerHTML = '';
+    prioQuarantined.forEach(function(ch) {
+        const div = document.createElement('div');
+        div.className = 'prio-quarantine-item';
+        div.innerHTML =
+            '<img class="prio-ch-logo" src="' + _prioEsc(ch.logo||'') + '" onerror="this.src=\'https://via.placeholder.com/28?text=TV\'" loading="lazy">' +
+            '<span class="prio-ch-name" title="' + _prioEsc(ch.name) + '" style="color:#888;">' + _prioEsc(ch.name) + '</span>' +
+            '<span class="prio-ch-cat">' + _prioEsc(ch.category||'') + '</span>' +
+            '<button class="prio-sel-btn prio-sel-btn-green" onclick="prioRestoreFromQuarantine(\'' + _prioEsc(ch.url).replace(/'/g,'\\\'') + '\')"><i class="fas fa-undo"></i> Restaurer</button>' +
+            '<button class="prio-sel-btn prio-sel-btn-red" style="padding:5px 8px;" onclick="prioDeleteFromQuarantine(\'' + _prioEsc(ch.url).replace(/'/g,'\\\'') + '\')"><i class="fas fa-trash"></i></button>';
+        list.appendChild(div);
+    });
+}
+
+async function prioLoadData() {
+    if (_prioLoaded) return;
+    _prioLoaded = true;
+    document.getElementById('prio-left-list').innerHTML = '<div class="prio-loading"><i class="fas fa-spinner"></i>Chargement des chaînes...</div>';
+    try {
+        const rows = await sbGet('channels_data', 'select=version,count,data&order=published_at.desc&limit=1');
+        if (!rows || !rows.length || !Array.isArray(rows[0].data) || !rows[0].data.length) {
+            // ✅ FIX: permettre de travailler même sans données — onglet reste utilisable
+            prioAllChannels = [];
+            _prioBuildMap();
+            _prioCurrentVersion = '—';
+            document.getElementById('prio-st-total').innerText = '0';
+            document.getElementById('prio-st-ver').innerText   = '—';
+            document.getElementById('prio-left-list').innerHTML = '<div class="prio-drop-hint"><i class="fas fa-info-circle" style="color:#0af;font-size:20px;"></i><p>Aucune chaîne en base.<br>Utilisez <b style="color:#0af;">Importer un fichier M3U</b><br>pour ajouter vos chaînes,<br>puis cliquez <b style="color:#ffd700;">Sauvegarder & Publier</b>.</p></div>';
+            prioUpdateStats();
+            return;
+        }
+        prioAllChannels = rows[0].data.filter(function(c){ return c && c.url; }); // ✅ filtrer les entrées nulles
+        _prioBuildMap(); // ✅ FIX CRITIQUE : construire le Map O(1) lookup
+        _prioCurrentVersion = rows[0].version || '1.0';
+        document.getElementById('prio-st-total').innerText = prioAllChannels.length.toLocaleString('fr');
+        document.getElementById('prio-st-ver').innerText   = _prioCurrentVersion;
+
+        const cats = [...new Set(prioAllChannels.map(function(c){ return c.category || 'Autres'; }))].sort();
+        const sel  = document.getElementById('prio-cat-filter');
+        sel.innerHTML = '<option value="">Toutes catégories</option>';
+        cats.forEach(function(c){ const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); });
+
+        try {
+            // ✅ FIX: chercher d'abord id=1, sinon prendre la ligne la plus récente (comme myboxv2)
+            let prows = await sbGet('channel_priorities', 'select=priorities&id=eq.1&limit=1');
+            if (!prows || !prows.length) {
+                prows = await sbGet('channel_priorities', 'select=priorities&order=saved_at.desc&limit=1');
+            }
+            if (prows && prows.length && Array.isArray(prows[0].priorities)) {
+                // ✅ FIX CRITIQUE : utiliser Map O(1) au lieu de .some() O(n) en boucle
+                prioURLs = prows[0].priorities.filter(function(u){ return _prioChannelMap.has(u); });
+                toast('✅ ' + prioURLs.length + ' priorités précédentes restaurées', '#2ecc71');
+            }
+        } catch(e) { prioURLs = []; }
+
+        _prioUpdateUndoRedo();
+        prioFilterLeft();
+        prioRenderRight();
+        prioUpdateStats();
+    } catch(e) {
+        _prioLoaded = false; // ✅ permettre retry si erreur réseau
+        document.getElementById('prio-left-list').innerHTML = '<div class="prio-drop-hint"><i class="fas fa-times-circle" style="color:#e50914;"></i><p>Erreur : ' + _prioEsc(e.message) + '<br><br><button class="prio-btn prio-btn-gray" onclick="_prioLoaded=false;prioLoadData()"><i class="fas fa-sync-alt"></i> Réessayer</button></p></div>';
+    }
+}
+
+// ── TRI COLONNES ──
+function prioToggleLeftSort() {
+    // Cycle : original → A→Z → Z→A → original
+    if (_prioLeftSortAZ === false)      _prioLeftSortAZ = true;
+    else if (_prioLeftSortAZ === true)  _prioLeftSortAZ = null;
+    else                                _prioLeftSortAZ = false;
+    const btn = document.getElementById('prio-left-sort-btn');
+    if (btn) {
+        if (_prioLeftSortAZ === false)     { btn.innerHTML = '<i class="fas fa-sort-alpha-down"></i>'; btn.style.color = '#555'; btn.title = 'Trier A→Z'; }
+        else if (_prioLeftSortAZ === true) { btn.innerHTML = '<i class="fas fa-sort-alpha-down" style="color:#2ecc71;"></i>'; btn.style.color = '#2ecc71'; btn.title = 'Trier Z→A'; }
+        else                               { btn.innerHTML = '<i class="fas fa-sort-alpha-up" style="color:#ffd700;"></i>'; btn.style.color = '#ffd700'; btn.title = 'Annuler tri'; }
+    }
+    prioFilterLeft();
+}
+function prioToggleRightSort() {
+    if (_prioRightSortAZ === false)      _prioRightSortAZ = true;
+    else if (_prioRightSortAZ === true)  _prioRightSortAZ = null;
+    else                                 _prioRightSortAZ = false;
+    const btn = document.getElementById('prio-right-sort-btn');
+    if (btn) {
+        if (_prioRightSortAZ === false)     { btn.innerHTML = '<i class="fas fa-sort-alpha-down"></i>'; btn.style.color = '#555'; btn.title = 'Trier A→Z'; }
+        else if (_prioRightSortAZ === true) { btn.innerHTML = '<i class="fas fa-sort-alpha-down" style="color:#2ecc71;"></i>'; btn.style.color = '#2ecc71'; btn.title = 'Trier Z→A'; }
+        else                                { btn.innerHTML = '<i class="fas fa-sort-alpha-up" style="color:#ffd700;"></i>'; btn.style.color = '#ffd700'; btn.title = 'Annuler tri'; }
+    }
+    prioRenderRight();
+}
+
+function prioFilterLeft() {
+    const term = (document.getElementById('prio-search-input').value || '').toLowerCase().trim();
+    const cat  = document.getElementById('prio-cat-filter').value;
+    const prioSet = new Set(prioURLs); // ✅ Set O(1) au lieu de includes() O(n)
+    prioLeftFiltered = prioAllChannels.filter(function(ch) {
+        return !prioSet.has(ch.url) && (!cat || ch.category === cat) && (!term || ch.name.toLowerCase().includes(term));
+    });
+    // Tri colonne gauche
+    if (_prioLeftSortAZ === true)  prioLeftFiltered = prioLeftFiltered.slice().sort(function(a,b){ return a.name.localeCompare(b.name,'fr',{sensitivity:'base'}); });
+    else if (_prioLeftSortAZ === null) prioLeftFiltered = prioLeftFiltered.slice().sort(function(a,b){ return b.name.localeCompare(a.name,'fr',{sensitivity:'base'}); });
+    document.getElementById('prio-left-count').innerText = prioLeftFiltered.length.toLocaleString('fr') + ' chaîne(s)';
+    // Nettoyer la sélection des éléments qui ne sont plus visibles
+    _prioLeftSel.forEach(function(u){ if (!prioSet.has(u) && !prioLeftFiltered.some(function(c){ return c.url===u; })) _prioLeftSel.delete(u); });
+    _prioUpdateLeftSelBar();
+    prioRenderLeft();
+}
+
+function prioRenderLeft() {
+    const list = document.getElementById('prio-left-list');
+    list.innerHTML = '';
+    _prioLeftOffset = 0;
+    if (!prioLeftFiltered.length) {
+        list.innerHTML = '<div class="prio-drop-hint" style="padding:30px 20px;"><i class="fas fa-check-circle" style="color:#2ecc71;font-size:20px;"></i><p>Toutes ces chaînes sont déjà en priorité !</p></div>';
+        return;
+    }
+    _appendPrioLeftBatch(list);
+    const sentinel = document.createElement('div');
+    sentinel.id = 'prio-left-sentinel';
+    list.appendChild(sentinel);
+    if (_prioScrollObserver) _prioScrollObserver.disconnect();
+    _prioScrollObserver = new IntersectionObserver(entries => {
+        if (entries[0].isIntersecting && _prioLeftOffset < prioLeftFiltered.length) _appendPrioLeftBatch(list);
+    }, { root: list, threshold: 0.1 });
+    _prioScrollObserver.observe(sentinel);
+}
+
+function _appendPrioLeftBatch(list) {
+    const sentinel = document.getElementById('prio-left-sentinel');
+    const frag = document.createDocumentFragment();
+    const end  = Math.min(_prioLeftOffset + PRIO_BATCH, prioLeftFiltered.length);
+    for (let i = _prioLeftOffset; i < end; i++) frag.appendChild(prioMakeLeftItem(prioLeftFiltered[i]));
+    _prioLeftOffset = end;
+    if (sentinel) list.insertBefore(frag, sentinel);
+    else list.appendChild(frag);
+    if (sentinel) sentinel.style.display = (_prioLeftOffset >= prioLeftFiltered.length) ? 'none' : 'block';
+}
+
+function prioMakeLeftItem(ch) {
+    const div = document.createElement('div');
+    div.className = 'prio-ch-item'; div.draggable = true; div.dataset.url = ch.url;
+    const isChecked = _prioLeftSel.has(ch.url);
+    div.innerHTML =
+        '<input type="checkbox" class="prio-ch-check" data-url="' + _prioEsc(ch.url) + '"' + (isChecked ? ' checked' : '') + '>' +
+        '<img class="prio-ch-logo" src="' + _prioEsc(ch.logo||'') + '" onerror="this.src=\'https://via.placeholder.com/28?text=TV\'" loading="lazy">' +
+        '<span class="prio-ch-name" title="' + _prioEsc(ch.name) + '">' + _prioEsc(ch.name) + '</span>' +
+        '<span class="prio-ch-cat">' + _prioEsc(ch.category||'') + '</span>' +
+        '<button class="prio-ch-btn" title="Tester"><i class="fas fa-play"></i></button>' +
+        '<button class="prio-ch-btn add" title="Ajouter en priorité"><i class="fas fa-plus"></i></button>';
+    if (isChecked) div.classList.add('selected');
+    const cb = div.querySelector('.prio-ch-check');
+    cb.onclick = e => {
+        e.stopPropagation();
+        const idx = prioLeftFiltered.indexOf(ch);
+        if (e.shiftKey && _prioLastClickedLeft >= 0 && idx !== _prioLastClickedLeft) {
+            const from = Math.min(_prioLastClickedLeft, idx);
+            const to   = Math.max(_prioLastClickedLeft, idx);
+            const addMode = !_prioLeftSel.has(ch.url); // sélectionner ou désélectionner ?
+            for (let i = from; i <= to; i++) {
+                if (i < prioLeftFiltered.length) {
+                    if (addMode) _prioLeftSel.add(prioLeftFiltered[i].url);
+                    else _prioLeftSel.delete(prioLeftFiltered[i].url);
+                }
+            }
+            // Mettre à jour les cases cochées visibles
+            document.querySelectorAll('#prio-left-list .prio-ch-check').forEach(c => {
+                const has = _prioLeftSel.has(c.dataset.url);
+                c.checked = has;
+                c.closest('.prio-ch-item').classList.toggle('selected', has);
+            });
+        } else {
+            if (cb.checked) _prioLeftSel.add(ch.url); else _prioLeftSel.delete(ch.url);
+            div.classList.toggle('selected', cb.checked);
+        }
+        _prioLastClickedLeft = idx;
+        _prioUpdateLeftSelBar();
+    };
+    div.querySelectorAll('.prio-ch-btn')[0].onclick = () => prioTestChannel(ch);
+    div.querySelector('button.add').onclick = () => prioAddToPrio(ch.url);
+    div.addEventListener('dragstart', e => { e.dataTransfer.setData('url', ch.url); e.dataTransfer.setData('from', 'left'); div.classList.add('dragging'); });
+    div.addEventListener('dragend', () => div.classList.remove('dragging'));
+    div.addEventListener('contextmenu', e => prioShowCtxMenu(e, ch, 'left', -1));
+    return div;
+}
+
+function prioRenderRight() {
+    const list = document.getElementById('prio-right-list');
+    const searchEl = document.getElementById('prio-right-search-input');
+    const term = searchEl ? searchEl.value.toLowerCase().trim() : '';
+
+    // ✅ FIX CRITIQUE : utiliser _prioChannelMap O(1) au lieu de .find() O(n) en boucle
+    let filtered = term ? prioURLs.filter(function(url) {
+        const ch = _prioChannelMap.get(url);
+        return ch && ch.name.toLowerCase().includes(term);
+    }) : prioURLs.slice();
+
+    // Tri colonne droite (tri visuel seulement, ne change pas prioURLs)
+    if (_prioRightSortAZ === true)      filtered.sort(function(a,b){ const ca=_prioChannelMap.get(a); const cb=_prioChannelMap.get(b); return (ca?ca.name:'').localeCompare(cb?cb.name:'','fr',{sensitivity:'base'}); });
+    else if (_prioRightSortAZ === null) filtered.sort(function(a,b){ const ca=_prioChannelMap.get(a); const cb=_prioChannelMap.get(b); return (cb?cb.name:'').localeCompare(ca?ca.name:'','fr',{sensitivity:'base'}); });
+
+    document.getElementById('prio-right-count').innerText = term
+        ? (filtered.length + ' / ' + prioURLs.length + ' chaîne(s)')
+        : (prioURLs.length + ' chaîne(s)');
+
+    list.innerHTML = '';
+
+    // Déconnecter l'observer précédent
+    if (_prioRightScrollObserver) { _prioRightScrollObserver.disconnect(); _prioRightScrollObserver = null; }
+
+    if (!prioURLs.length) {
+        const h = document.createElement('div'); h.id = 'prio-drop-hint'; h.className = 'prio-drop-hint';
+        h.innerHTML = '<i class="fas fa-star"></i><p>Glissez des chaînes ici<br>ou cliquez <b style="color:#2ecc71;">+</b><br><br>Elles seront <b style="color:#ffd700;">en tête de liste</b><br>pour tous vos clients<br>Les autres restent en bas</p>';
+        list.appendChild(h); return;
+    }
+    if (term && !filtered.length) {
+        list.innerHTML = '<div class="prio-drop-hint" style="padding:30px 20px;"><i class="fas fa-search" style="font-size:20px;color:#333;"></i><p style="color:#444;">Aucun résultat pour<br><b style="color:#ffd700;">"' + _prioEsc(term) + '"</b></p></div>';
+        return;
+    }
+
+    // ✅ FIX CRITIQUE : virtualisation colonne droite (identique colonne gauche)
+    _prioRightFiltered = filtered;
+    _prioRightOffset   = 0;
+    _appendPrioRightBatch(list);
+    const sentinel = document.createElement('div');
+    sentinel.id = 'prio-right-sentinel';
+    list.appendChild(sentinel);
+    _prioRightScrollObserver = new IntersectionObserver(function(entries) {
+        if (entries[0].isIntersecting && _prioRightOffset < _prioRightFiltered.length) _appendPrioRightBatch(list);
+    }, { root: list, threshold: 0.1 });
+    _prioRightScrollObserver.observe(sentinel);
+}
+
+function _appendPrioRightBatch(list) {
+    const sentinel = document.getElementById('prio-right-sentinel');
+    const frag = document.createDocumentFragment();
+    const end  = Math.min(_prioRightOffset + PRIO_BATCH_RIGHT, _prioRightFiltered.length);
+    for (let i = _prioRightOffset; i < end; i++) {
+        const url = _prioRightFiltered[i];
+        const idx = prioURLs.indexOf(url); // indexOf sur prioURLs (liste prioritaires, souvent courte)
+        const ch  = _prioChannelMap.get(url); // ✅ O(1)
+        if (ch) frag.appendChild(prioMakeRightItem(ch, idx));
+    }
+    _prioRightOffset = end;
+    if (sentinel) list.insertBefore(frag, sentinel);
+    else list.appendChild(frag);
+    if (sentinel) sentinel.style.display = (_prioRightOffset >= _prioRightFiltered.length) ? 'none' : 'block';
+}
+
+function prioMakeRightItem(ch, index) {
+    const div = document.createElement('div');
+    div.className = 'prio-ch-item is-priority' + (index < 3 ? ' top3' : '');
+    div.draggable = true; div.dataset.url = ch.url; div.dataset.idx = index;
+    const isChecked = _prioRightSel.has(ch.url);
+    div.innerHTML =
+        '<input type="checkbox" class="prio-ch-check" data-url="' + _prioEsc(ch.url) + '"' + (isChecked ? ' checked' : '') + '>' +
+        '<i class="fas fa-grip-vertical prio-ch-drag"></i>' +
+        '<span class="prio-ch-rank ' + (index < 3 ? 'gold' : '') + '">' + (index+1) + '</span>' +
+        '<img class="prio-ch-logo" src="' + _prioEsc(ch.logo||'') + '" onerror="this.src=\'https://via.placeholder.com/28?text=TV\'" loading="lazy">' +
+        '<span class="prio-ch-name" title="' + _prioEsc(ch.name) + '">' + _prioEsc(ch.name) + '</span>' +
+        '<span class="prio-ch-cat">' + _prioEsc(ch.category||'') + '</span>' +
+        '<button class="prio-ch-btn" title="Monter"' + (index===0?' disabled':'') + '><i class="fas fa-arrow-up"></i></button>' +
+        '<button class="prio-ch-btn" title="Descendre"' + (index===prioURLs.length-1?' disabled':'') + '><i class="fas fa-arrow-down"></i></button>' +
+        '<button class="prio-ch-btn" title="Tester"><i class="fas fa-play"></i></button>' +
+        '<button class="prio-ch-btn" title="Retirer"><i class="fas fa-times"></i></button>';
+    if (isChecked) div.classList.add('selected');
+    const cb = div.querySelector('.prio-ch-check');
+    cb.onclick = e => {
+        e.stopPropagation();
+        const idx = _prioRightFiltered.indexOf(ch.url);
+        if (e.shiftKey && _prioLastClickedRight >= 0 && idx !== _prioLastClickedRight) {
+            const from = Math.min(_prioLastClickedRight, idx);
+            const to   = Math.max(_prioLastClickedRight, idx);
+            const addMode = !_prioRightSel.has(ch.url);
+            for (let i = from; i <= to; i++) {
+                if (i < _prioRightFiltered.length) {
+                    if (addMode) _prioRightSel.add(_prioRightFiltered[i]);
+                    else _prioRightSel.delete(_prioRightFiltered[i]);
+                }
+            }
+            document.querySelectorAll('#prio-right-list .prio-ch-check').forEach(c => {
+                const has = _prioRightSel.has(c.dataset.url);
+                c.checked = has;
+                c.closest('.prio-ch-item').classList.toggle('selected', has);
+            });
+        } else {
+            if (cb.checked) _prioRightSel.add(ch.url); else _prioRightSel.delete(ch.url);
+            div.classList.toggle('selected', cb.checked);
+        }
+        _prioLastClickedRight = idx;
+        _prioUpdateRightSelBar();
+    };
+    const btns = div.querySelectorAll('.prio-ch-btn');
+    btns[0].onclick = function() { prioMovePrio(prioURLs.indexOf(ch.url), -1); }; // ✅ FIX : index temps réel
+    btns[1].onclick = function() { prioMovePrio(prioURLs.indexOf(ch.url),  1); };
+    btns[2].onclick = function() { prioTestChannel(ch); };
+    btns[3].onclick = function() { prioRemoveFromPrio(ch.url); };
+    div.addEventListener('dragstart', function(e) {
+        prioDragSrcIdx = prioURLs.indexOf(ch.url); // ✅ FIX : index réel, pas visuel
+        e.dataTransfer.setData('url', ch.url);
+        e.dataTransfer.setData('from', 'right');
+        div.classList.add('dragging');
+    });
+    div.addEventListener('dragend',   function() { div.classList.remove('dragging'); prioDragSrcIdx = -1; });
+    div.addEventListener('dragover',  function(e) { e.preventDefault(); div.classList.add('drag-over'); });
+    div.addEventListener('dragleave', function() { div.classList.remove('drag-over'); });
+    div.addEventListener('contextmenu', function(e) { prioShowCtxMenu(e, ch, 'right', prioURLs.indexOf(ch.url)); });
+    div.addEventListener('drop', function(e) {
+        e.preventDefault(); e.stopPropagation(); div.classList.remove('drag-over');
+        const from    = e.dataTransfer.getData('from');
+        const url     = e.dataTransfer.getData('url');
+        const realIdx = prioURLs.indexOf(ch.url); // ✅ FIX : index cible réel
+        if (from === 'right' && prioDragSrcIdx !== -1 && prioDragSrcIdx !== realIdx) {
+            prioSaveState();
+            const [m] = prioURLs.splice(prioDragSrcIdx, 1); prioURLs.splice(realIdx, 0, m);
+        } else if (from === 'left' && url && !prioURLs.includes(url)) {
+            prioSaveState();
+            prioURLs.splice(realIdx, 0, url);
+        }
+        prioMarkDirty(); prioRenderRight(); prioFilterLeft();
+    });
+    return div;
+}
+
+function prioOnDropEmptyRight(e) {
+    // ✅ FIX : ne traiter que si le drop est directement sur la liste (pas sur un item qui appelle stopPropagation)
+    if (e.target !== document.getElementById('prio-right-list') &&
+        !e.target.classList.contains('prio-drop-hint')) return;
+    const from = e.dataTransfer.getData('from');
+    const url  = e.dataTransfer.getData('url');
+    if (from === 'left' && url && !prioURLs.includes(url)) {
+        prioSaveState();
+        prioURLs.push(url); prioMarkDirty(); prioRenderRight(); prioFilterLeft();
+    }
+}
+
+function prioAddToPrio(url) { if (prioURLs.includes(url)) return; prioSaveState(); prioURLs.unshift(url); prioMarkDirty(); prioRenderRight(); prioFilterLeft(); }
+function prioRemoveFromPrio(url) { prioSaveState(); prioURLs = prioURLs.filter(u => u !== url); prioMarkDirty(); prioRenderRight(); prioFilterLeft(); }
+function prioMovePrio(i, d) { const n = i+d; if (n<0||n>=prioURLs.length) return; prioSaveState(); [prioURLs[i],prioURLs[n]]=[prioURLs[n],prioURLs[i]]; prioMarkDirty(); prioRenderRight(); }
+
+function prioAddAllVisible() {
+    const prioSet = new Set(prioURLs); // ✅ FIX : Set O(1) au lieu de includes() O(n) en boucle
+    const toAdd = prioLeftFiltered.slice(0, 400).filter(function(ch) { return !prioSet.has(ch.url); });
+    if (!toAdd.length) { toast('⚠️ Toutes ces chaînes sont déjà en priorité', '#ffd700'); return; }
+    prioSaveState();
+    toAdd.forEach(function(ch) { prioURLs.push(ch.url); });
+    prioMarkDirty(); prioRenderRight(); prioFilterLeft(); toast('✅ ' + toAdd.length + ' chaînes ajoutées', '#2ecc71');
+}
+
+function prioClearAll() {
+    if (!prioURLs.length) return;
+    if (!confirm('Effacer toutes les priorités ?')) return;
+    prioSaveState();
+    prioURLs = []; prioMarkDirty(); prioRenderRight(); prioFilterLeft(); toast('🔄 Priorités effacées', '#0af');
+}
+
+async function prioSaveAndPublish() {
+    const btn = document.getElementById('prio-btn-save');
+    btn.disabled = true;
+    try {
+        const prioSet    = new Set(prioURLs);
+        const prioChains = prioURLs.map(function(url){ return prioAllChannels.find(function(c){ return c.url === url; }); }).filter(Boolean);
+        const restChains = prioAllChannels.filter(function(c){ return !prioSet.has(c.url); });
+        const newData    = [...prioChains, ...restChains];
+
+        const now = new Date();
+        const newVersion = now.getFullYear() + '.' + String(now.getMonth()+1).padStart(2,'0') + '.' +
+            String(now.getDate()).padStart(2,'0') + '-' +
+            String(now.getHours()).padStart(2,'0') + String(now.getMinutes()).padStart(2,'0');
+        const kb = (new Blob([JSON.stringify(newData)]).size / 1024).toFixed(1);
+
+        // ── ETAPE 1 (priorité) : sauvegarder channel_priorities (petit payload, rapide) ──
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sauvegarde priorités...';
+        const prioRes = await _sbFetch(
+            SUPABASE_URL + '/rest/v1/channel_priorities?on_conflict=id',
+            {
+                method:  'POST',
+                headers: Object.assign({}, SB_HEADERS, { 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
+                body:    JSON.stringify({ id: 1, priorities: prioURLs, count: prioURLs.length, saved_at: now.toISOString() })
+            },
+            0, 30000  // 30s timeout — payload léger
+        );
+        if (!prioRes.ok) {
+            const errTxt = await prioRes.text();
+            throw new Error('Erreur sauvegarde priorités : ' + errTxt);
+        }
+
+        // ── ETAPE 2 : publier channels_data (gros payload JSON — timeout 90s) ──
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publication ' + kb + ' Ko...';
+        const insRes = await _sbFetch(
+            SUPABASE_URL + '/rest/v1/channels_data',
+            {
+                method:  'POST',
+                headers: Object.assign({}, SB_HEADERS, { 'Prefer': 'return=minimal' }), // ✅ FIX: ne pas retourner le gros payload
+                body:    JSON.stringify({
+                    version:      newVersion,
+                    data:         newData,
+                    note:         prioURLs.length + ' prioritaires en tête',
+                    size_kb:      parseFloat(kb),
+                    published_at: now.toISOString()
+                })
+            },
+            0, 90000  // 90s timeout — gros payload possible
+        );
+        if (!insRes.ok) {
+            const errTxt = await insRes.text();
+            throw new Error('Erreur publication channels_data : ' + errTxt);
+        }
+
+        prioAllChannels     = newData;
+        _prioBuildMap(); // ✅ FIX : rebuilder le Map après réorganisation
+        _prioCurrentVersion = newVersion;
+        document.getElementById('prio-st-ver').innerText           = newVersion;
+        document.getElementById('prio-unsaved-dot').style.display  = 'none';
+        toast('🚀 Publié v' + newVersion + ' — ' + prioURLs.length + ' prioritaires + ' + restChains.length.toLocaleString('fr') + ' autres', '#2ecc71');
+        prioUpdateStats();
+    } catch(e) {
+        toast('❌ Erreur publication : ' + e.message, '#ff6b6b');
+        console.error('prioSaveAndPublish error:', e);
+    } finally {
+        btn.innerHTML = '<i class="fas fa-upload"></i> SAUVEGARDER & PUBLIER';
+        btn.disabled  = false;
+    }
+}
+
+function prioMarkDirty() { const dot = document.getElementById('prio-unsaved-dot'); if (dot) dot.style.display = 'inline-block'; prioUpdateStats(); }
+function prioUpdateStats() {
+    const t = prioAllChannels.length, p = prioURLs.length, r = Math.max(0, t - p);
+    const ids = { 'prio-st-prio': p, 'prio-st-rest': r.toLocaleString('fr'), 'prio-st-total': t.toLocaleString('fr'), 'prio-nb': p, 'prio-rest-nb': r.toLocaleString('fr'), 'prio-total-nb': t.toLocaleString('fr') };
+    Object.entries(ids).forEach(([id, val]) => { const el = document.getElementById(id); if (el) el.innerText = val; });
+}
+
+// ── LECTEUR FLOTTANT PERMANENT ──
+let _prioPipDragging = false, _prioPipX = 20, _prioPipY = 20;
+
+function _prioPipInit() {
+    const mp  = document.getElementById('prio-mini-player');
+    const hdl = document.getElementById('prio-pip-drag-handle');
+    if (!hdl || hdl._pipInit) return;
+    hdl._pipInit = true;
+    mp.style.right  = _prioPipX + 'px';
+    mp.style.bottom = _prioPipY + 'px';
+    let startX, startY, startRight, startBottom;
+    hdl.addEventListener('mousedown', e => {
+        _prioPipDragging = true;
+        startX = e.clientX; startY = e.clientY;
+        startRight  = parseInt(mp.style.right)  || _prioPipX;
+        startBottom = parseInt(mp.style.bottom) || _prioPipY;
+        e.preventDefault();
+    });
+    document.addEventListener('mousemove', e => {
+        if (!_prioPipDragging) return;
+        mp.style.right  = Math.max(0, Math.min(startRight  - (e.clientX - startX), window.innerWidth  - mp.offsetWidth))  + 'px';
+        mp.style.bottom = Math.max(0, Math.min(startBottom + (e.clientY - startY), window.innerHeight - mp.offsetHeight)) + 'px';
+    });
+    document.addEventListener('mouseup', () => {
+        if (_prioPipDragging) { _prioPipX = parseInt(mp.style.right); _prioPipY = parseInt(mp.style.bottom); }
+        _prioPipDragging = false;
+    });
+    hdl.addEventListener('touchstart', e => {
+        _prioPipDragging = true;
+        startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+        startRight  = parseInt(mp.style.right)  || _prioPipX;
+        startBottom = parseInt(mp.style.bottom) || _prioPipY;
+    }, { passive: true });
+    document.addEventListener('touchmove', e => {
+        if (!_prioPipDragging) return;
+        mp.style.right  = Math.max(0, startRight  - (e.touches[0].clientX - startX)) + 'px';
+        mp.style.bottom = Math.max(0, startBottom + (e.touches[0].clientY - startY)) + 'px';
+    }, { passive: true });
+    document.addEventListener('touchend', () => { _prioPipDragging = false; });
+}
+
+function prioClosePip() {
+    prioStopPlayer(true);
+    document.getElementById('prio-mini-player').classList.remove('active');
+}
+
+function prioTestChannel(ch) {
+    if (!ch || !ch.url) return;
+    if (_prioCurrentPlayUrl === ch.url) return;
+    prioStopPlayer(false);
+    _prioCurrentPlayUrl = ch.url;
+    const mp = document.getElementById('prio-mini-player');
+    mp.classList.add('active');
+    _prioPipInit();
+    document.getElementById('prio-mini-player-title').innerText = ch.name || '—';
+    const logo = document.getElementById('prio-player-logo');
+    if (ch.logo) { logo.src = ch.logo; logo.style.display = 'inline-block'; } else logo.style.display = 'none';
+    prioPSetStatus('⏳', '');
+    const overlay = document.getElementById('prio-player-overlay');
+    overlay.classList.remove('hidden');
+    overlay.innerHTML = '<i class="fas fa-spinner" style="font-size:22px;color:#e50914;animation:spin .7s linear infinite;"></i><p style="font-size:11px;color:#555;margin-top:6px;">Connexion...</p>';
+    overlay.onclick = null;
+    const video = document.getElementById('prio-test-video');
+    video.volume = document.getElementById('prio-vol-range').value / 100;
+    video.muted  = _prioMuted;
+    const isM3U8 = ch.url.includes('.m3u8') || ch.url.includes('m3u');
+    if (typeof Hls !== 'undefined' && Hls.isSupported() && isM3U8) {
+        _prioHls = new Hls({ maxBufferLength: 10, maxMaxBufferLength: 20, enableWorker: false });
+        _prioHls.loadSource(ch.url);
+        _prioHls.attachMedia(video);
+        _prioHls.on(Hls.Events.MANIFEST_PARSED, function() {
+            video.play().then(function(){ overlay.classList.add('hidden'); prioPSetStatus('🔴 EN DIRECT', 'live'); })
+            .catch(function() {
+                overlay.innerHTML = '<i class="fas fa-hand-pointer" style="color:#ffd700;font-size:22px;"></i><p style="font-size:11px;color:#aaa;margin-top:6px;">Cliquez pour lancer</p>';
+                overlay.onclick = function(){ video.play(); overlay.classList.add('hidden'); overlay.onclick = null; };
+                prioPSetStatus('▶ Cliquer', '');
+            });
+        });
+        _prioHls.on(Hls.Events.ERROR, function(ev, d) {
+            if (d.fatal) {
+                prioPSetStatus('❌ Erreur', 'err');
+                overlay.classList.remove('hidden');
+                overlay.innerHTML = '<i class="fas fa-times-circle" style="color:#e50914;font-size:22px;"></i><p style="font-size:11px;color:#555;margin-top:6px;">Flux indisponible</p>';
+            }
+        });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = ch.url;
+        video.play().then(function(){ overlay.classList.add('hidden'); prioPSetStatus('🔴 EN DIRECT', 'live'); }).catch(function(){ prioPSetStatus('❌', 'err'); });
+    } else {
+        video.src = ch.url;
+        video.play().then(function(){ overlay.classList.add('hidden'); prioPSetStatus('🔴', 'live'); }).catch(function(){ prioPSetStatus('❌', 'err'); });
+    }
+}
+
+function prioStopPlayer(resetTitle = true) {
+    if (_prioHls) { _prioHls.destroy(); _prioHls = null; }
+    const video = document.getElementById('prio-test-video');
+    video.pause(); video.src = '';
+    _prioCurrentPlayUrl = '';
+    const overlay = document.getElementById('prio-player-overlay');
+    overlay.classList.remove('hidden');
+    overlay.innerHTML = '<i class="fas fa-play-circle" style="font-size:28px;color:#222;"></i>';
+    overlay.onclick = null;
+    if (resetTitle) {
+        document.getElementById('prio-mini-player-title').innerText = '—';
+        document.getElementById('prio-player-logo').style.display = 'none';
+    }
+    prioPSetStatus('⏸', '');
+}
+
+function prioPSetStatus(msg, cls) { const el = document.getElementById('prio-mini-player-status'); el.innerText = msg; el.className = cls || ''; }
+function prioSetVol(v) { document.getElementById('prio-test-video').volume = v/100; document.getElementById('prio-vol-pct').innerText = v + '%'; }
+function prioToggleMute() { _prioMuted = !_prioMuted; document.getElementById('prio-test-video').muted = _prioMuted; document.getElementById('prio-btn-mute').innerHTML = _prioMuted ? '<i class="fas fa-volume-mute" style="color:#e50914;"></i>' : '<i class="fas fa-volume-mute"></i>'; }
+
+// ── AJOUT MANUEL PRIORITÉ ──
+function prioToggleAddPanel() {
+    const body    = document.getElementById('prio-add-panel-body');
+    const chevron = document.getElementById('prio-add-panel-chevron');
+    const open    = body.classList.toggle('open');
+    chevron.style.transform = open ? 'rotate(180deg)' : '';
+    if (open) {
+        const dl = document.getElementById('prio-cat-datalist');
+        dl.innerHTML = '';
+        const cats = [...new Set(prioAllChannels.map(c => c.category || 'Autres'))].sort();
+        cats.forEach(c => { const o = document.createElement('option'); o.value = c; dl.appendChild(o); });
+    }
+}
+function prioUpdateAddPreview() {
+    const name = document.getElementById('prio-add-name').value.trim() || 'Nom de la chaîne';
+    const logo = document.getElementById('prio-add-logo').value.trim();
+    const cat  = document.getElementById('prio-add-cat').value.trim()  || 'Catégorie';
+    document.getElementById('prio-add-preview-name').innerText = name;
+    document.getElementById('prio-add-preview-cat').innerText  = cat;
+    const img = document.getElementById('prio-add-preview-logo');
+    img.src = logo || 'https://via.placeholder.com/32?text=TV';
+}
+function prioTestAddChannel() {
+    const url  = document.getElementById('prio-add-url').value.trim();
+    const name = document.getElementById('prio-add-name').value.trim() || 'Test';
+    const logo = document.getElementById('prio-add-logo').value.trim();
+    if (!url) { prioPSetAddMsg('⚠️ Entrez une URL de flux', '#ffd700'); return; }
+    if (!document.getElementById('prio-add-panel-body').classList.contains('open')) prioToggleAddPanel();
+    prioTestChannel({ name, url, logo, category: document.getElementById('prio-add-cat').value.trim() || 'Autres' });
+    prioPSetAddMsg('▶ Test en cours dans le lecteur...', '#0af');
+}
+function prioAddChannelToList(asPriority) {
+    const name = document.getElementById('prio-add-name').value.trim();
+    const url  = document.getElementById('prio-add-url').value.trim();
+    const logo = document.getElementById('prio-add-logo').value.trim();
+    const cat  = document.getElementById('prio-add-cat').value.trim() || 'Autres';
+    if (!name) { prioPSetAddMsg('⚠️ Le nom est obligatoire', '#ffd700'); return; }
+    if (!url)  { prioPSetAddMsg('⚠️ L\'URL est obligatoire', '#ffd700'); return; }
+    if (!url.startsWith('http')) { prioPSetAddMsg('⚠️ URL invalide (doit commencer par http)', '#ffd700'); return; }
+    if (prioAllChannels.some(c => c.url === url)) { prioPSetAddMsg('⚠️ Cette URL existe déjà', '#ffd700'); return; }
+    const newCh = { name, url, logo: logo || '', category: cat };
+    prioSaveState();
+    prioAllChannels.push(newCh);
+    _prioChannelMap.set(url, newCh); // ✅ FIX : mettre à jour le Map
+    const catSel = document.getElementById('prio-cat-filter');
+    if (!Array.from(catSel.options).some(o => o.value === cat)) {
+        const o = document.createElement('option'); o.value = cat; o.textContent = cat; catSel.appendChild(o);
+    }
+    if (asPriority) { prioURLs.push(url); prioPSetAddMsg('✅ Chaîne ajoutée en priorité !', '#2ecc71'); }
+    else prioPSetAddMsg('✅ Chaîne ajoutée en bas de la liste', '#2ecc71');
+    prioMarkDirty(); prioFilterLeft(); prioRenderRight(); prioUpdateStats();
+    setTimeout(() => { prioClearAddForm(); document.getElementById('prio-add-msg').innerText = ''; }, 2000);
+}
+function prioClearAddForm() {
+    ['prio-add-name','prio-add-url','prio-add-logo','prio-add-cat'].forEach(id => document.getElementById(id).value = '');
+    prioUpdateAddPreview();
+    document.getElementById('prio-add-msg').innerText = '';
+}
+function prioPSetAddMsg(msg, color) { const el = document.getElementById('prio-add-msg'); el.innerText = msg; el.style.color = color || '#eee'; }
+
+// ── IMPORT M3U PRIORITÉ ──
+let _prioM3uParsed = []; // chaînes parsées en attente de fusion
+
+function prioToggleM3uPanel() {
+    const body    = document.getElementById('prio-m3u-panel-body');
+    const chevron = document.getElementById('prio-m3u-panel-chevron');
+    const open    = body.classList.toggle('open');
+    chevron.style.transform = open ? 'rotate(180deg)' : '';
+}
+
+function _prioM3uSetMsg(msg, color) {
+    const el = document.getElementById('prio-m3u-msg');
+    if (el) { el.innerText = msg; el.style.color = color || '#eee'; }
+}
+
+// Parse un texte M3U → tableau [{name, url, logo, category}]
+function _prioParseM3uText(text) {
+    const lines   = text.replace(/\r/g, '').split('\n');
+    const result  = [];
+    let pending   = null;
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        if (line.startsWith('#EXTINF')) {
+            // Ex: #EXTINF:-1 tvg-logo="..." group-title="Sports",Canal+
+            const logoMatch  = line.match(/tvg-logo="([^"]*)"/i);
+            const groupMatch = line.match(/group-title="([^"]*)"/i);
+            const commaIdx   = line.lastIndexOf(',');
+            const name       = commaIdx >= 0 ? line.slice(commaIdx + 1).trim() : 'Chaîne inconnue';
+            pending = {
+                name:     name || 'Chaîne inconnue',
+                logo:     logoMatch  ? logoMatch[1].trim()  : '',
+                category: groupMatch ? groupMatch[1].trim() : 'Autres',
+                url:      ''
+            };
+        } else if (line.startsWith('http') && pending) {
+            pending.url = line;
+            result.push(pending);
+            pending = null;
+        } else if (!line.startsWith('#') && line.startsWith('http')) {
+            // URL sans EXTINF
+            result.push({ name: 'Chaîne ' + (result.length + 1), url: line, logo: '', category: 'Autres' });
+        }
+    }
+    return result;
+}
+
+// Aperçu après parsing : affiche les badges nouvelles/doublons/total
+function _prioM3uShowPreview(parsed, sourceName) {
+    _prioM3uParsed = parsed;
+    const existing  = new Set(prioAllChannels.map(c => c.url));
+    const newOnes   = parsed.filter(c => !existing.has(c.url));
+    const dups      = parsed.filter(c =>  existing.has(c.url));
+    const totalAfter = prioAllChannels.length + newOnes.length;
+
+    document.getElementById('prio-m3u-preview').style.display = 'block';
+    document.getElementById('prio-m3u-preview-title').innerText = '📋 ' + sourceName + ' — ' + parsed.length + ' chaîne(s) lues';
+    document.getElementById('prio-m3u-badge-new').innerText  = newOnes.length + ' nouvelles';
+    document.getElementById('prio-m3u-badge-dup').innerText  = dups.length + ' doublons ignorés';
+    document.getElementById('prio-m3u-badge-tot').innerText  = '→ Total après fusion : ' + totalAfter;
+    document.getElementById('prio-m3u-confirm-count').innerText = newOnes.length;
+
+    // Prévisualiser les 30 premières chaînes
+    const listEl = document.getElementById('prio-m3u-preview-list');
+    listEl.innerHTML = '';
+    const preview = newOnes.slice(0, 30);
+    preview.forEach(ch => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:4px;background:#0d0d0d;margin-bottom:2px;';
+        row.innerHTML =
+            '<img src="' + _prioEsc(ch.logo||'') + '" onerror="this.src=\'https://via.placeholder.com/20?text=TV\'" style="width:20px;height:20px;object-fit:contain;background:#fff;border-radius:3px;flex-shrink:0;">' +
+            '<span style="font-size:11px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#ccc;">' + _prioEsc(ch.name) + '</span>' +
+            '<span style="font-size:10px;color:#2ecc71;flex-shrink:0;">NOUVELLE</span>';
+        listEl.appendChild(row);
+    });
+    if (newOnes.length > 30) {
+        const more = document.createElement('div');
+        more.style.cssText = 'text-align:center;font-size:10px;color:#444;padding:6px;';
+        more.innerText = '... et ' + (newOnes.length - 30) + ' autres nouvelles chaînes';
+        listEl.appendChild(more);
+    }
+    if (!newOnes.length) {
+        listEl.innerHTML = '<div style="text-align:center;color:#ffa500;font-size:12px;padding:10px;">⚠️ Toutes les chaînes de ce M3U existent déjà dans votre liste.</div>';
+    }
+    _prioM3uSetMsg('', '');
+}
+
+// Importer depuis URL
+async function prioImportM3uUrl() {
+    const url = (document.getElementById('prio-m3u-url-input').value || '').trim();
+    if (!url) { _prioM3uSetMsg('⚠️ Entrez une URL M3U', '#ffd700'); return; }
+    if (!url.startsWith('http')) { _prioM3uSetMsg('⚠️ URL invalide (doit commencer par http)', '#ffd700'); return; }
+    _prioM3uSetMsg('⏳ Chargement en cours...', '#0af');
+    document.getElementById('prio-m3u-preview').style.display = 'none';
+    try {
+        // Proxy CORS via allorigins
+        const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
+        const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(20000) });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const json = await res.json();
+        const text = json.contents || '';
+        if (!text.includes('#EXTINF') && !text.startsWith('http')) throw new Error('Ce fichier ne semble pas être un M3U valide');
+        const parsed = _prioParseM3uText(text);
+        if (!parsed.length) throw new Error('Aucune chaîne trouvée dans ce M3U');
+        _prioM3uShowPreview(parsed, url.split('/').pop() || 'playlist.m3u');
+        _prioM3uSetMsg('✅ ' + parsed.length + ' chaînes lues depuis l\'URL', '#2ecc71');
+    } catch(e) {
+        _prioM3uSetMsg('❌ Erreur : ' + e.message + ' (vérifiez l\'URL ou les CORS)', '#e50914');
+    }
+}
+
+// Importer depuis fichier local
+function prioImportM3uFile(input) {
+    const file = input.files[0];
+    if (!file) return;
+    document.getElementById('prio-m3u-file-name').innerText = file.name + ' (' + (file.size / 1024).toFixed(1) + ' Ko)';
+    document.getElementById('prio-m3u-preview').style.display = 'none';
+    _prioM3uSetMsg('⏳ Lecture du fichier...', '#0af');
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const text   = e.target.result;
+            const parsed = _prioParseM3uText(text);
+            if (!parsed.length) { _prioM3uSetMsg('⚠️ Aucune chaîne trouvée. Vérifiez le format du fichier.', '#ffd700'); return; }
+            _prioM3uShowPreview(parsed, file.name);
+            _prioM3uSetMsg('✅ ' + parsed.length + ' chaînes lues depuis ' + file.name, '#2ecc71');
+        } catch(err) {
+            _prioM3uSetMsg('❌ Erreur lecture : ' + err.message, '#e50914');
+        }
+    };
+    reader.onerror = function() { _prioM3uSetMsg('❌ Impossible de lire le fichier', '#e50914'); };
+    reader.readAsText(file, 'utf-8');
+}
+
+// Confirmer la fusion
+function prioConfirmM3uMerge() {
+    if (!_prioM3uParsed.length) { _prioM3uSetMsg('⚠️ Rien à fusionner', '#ffd700'); return; }
+    const existing  = new Set(prioAllChannels.map(c => c.url));
+    const newOnes   = _prioM3uParsed.filter(c => c.url && !existing.has(c.url));
+    if (!newOnes.length) { _prioM3uSetMsg('⚠️ Toutes ces chaînes existent déjà', '#ffd700'); return; }
+
+    prioSaveState(); // ✅ undo possible
+    prioAllChannels.push(...newOnes);
+    // ✅ FIX : mettre à jour le Map avec les nouvelles chaînes
+    newOnes.forEach(function(c){ _prioChannelMap.set(c.url, c); });
+
+    // Mettre à jour le filtre catégories
+    const catSel = document.getElementById('prio-cat-filter');
+    const existingCats = new Set(Array.from(catSel.options).map(o => o.value));
+    const newCats = [...new Set(newOnes.map(c => c.category || 'Autres'))];
+    newCats.forEach(cat => {
+        if (!existingCats.has(cat)) {
+            const o = document.createElement('option'); o.value = cat; o.textContent = cat; catSel.appendChild(o);
+        }
+    });
+
+    // Mettre à jour le stats total
+    document.getElementById('prio-st-total').innerText = prioAllChannels.length.toLocaleString('fr');
+    prioMarkDirty();
+    prioFilterLeft();
+    prioUpdateStats();
+
+    // Fermer le panneau + reset
+    prioCancelM3u();
+    document.getElementById('prio-m3u-panel-body').classList.remove('open');
+    document.getElementById('prio-m3u-panel-chevron').style.transform = '';
+
+    toast('✅ ' + newOnes.length + ' chaînes ajoutées — Total : ' + prioAllChannels.length.toLocaleString('fr'), '#2ecc71');
+}
+
+// Annuler / reset du panneau M3U
+function prioCancelM3u() {
+    _prioM3uParsed = [];
+    document.getElementById('prio-m3u-preview').style.display = 'none';
+    document.getElementById('prio-m3u-url-input').value = '';
+    const fi = document.getElementById('prio-m3u-file-input');
+    if (fi) fi.value = '';
+    document.getElementById('prio-m3u-file-name').innerText = '';
+    _prioM3uSetMsg('', '');
+}
+
+// ── EXPORT JSON PRIORITÉ ──
+function prioExportJSON() {
+    if (!prioAllChannels.length) { toast('⚠️ Aucune chaîne à exporter', '#ffd700'); return; }
+    const prioSet    = new Set(prioURLs);
+    const prioChains = prioURLs.map(url => prioAllChannels.find(c => c.url === url)).filter(Boolean);
+    const restChains = prioAllChannels.filter(c => !prioSet.has(c.url));
+    const ordered    = [...prioChains, ...restChains];
+    const now = new Date();
+    const version = now.getFullYear() + '.' + String(now.getMonth()+1).padStart(2,'0') + '.' + String(now.getDate()).padStart(2,'0');
+    const payload = { version, count: ordered.length, saved_at: now.toISOString(), channels: ordered };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'channels_v' + version + '.json'; a.click(); URL.revokeObjectURL(a.href);
+    document.getElementById('prio-export-info').innerText = '✅ ' + ordered.length.toLocaleString('fr') + ' chaînes exportées';
+    setTimeout(() => document.getElementById('prio-export-info').innerText = '', 3000);
+    toast('✅ channels_v' + version + '.json téléchargé', '#2ecc71');
+}
+
+function _prioEsc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+</body>
+</html>
