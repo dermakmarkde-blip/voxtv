@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vox TV — Admin Publications</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<style>
+:root {
+  --red: #e50914;
+  --red-glow: rgba(229,9,20,0.35);
+  --red-dim: rgba(229,9,20,0.12);
+  --bg: #060606;
+  --surface: #111111;
+  --surface2: #181818;
+  --surface3: #202020;
+  --border: rgba(255,255,255,0.07);
+  --border-red: rgba(229,9,20,0.3);
+  --text: #ffffff;
+  --muted: #666;
+  --green: #2ecc71;
+  --orange: #f39c12;
+  --blue: #00aaff;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+
+body {
+  font-family: 'Exo 2', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* BG Grain */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  opacity: 0.025; pointer-events: none;
+}
+
+/* HEADER */
+header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(6,6,6,0.95);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-red);
+  padding: 0 32px;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 64px;
+  box-shadow: 0 4px 40px rgba(229,9,20,0.1);
+}
+
+.header-logo {
+  display: flex; align-items: center; gap: 12px;
+}
+.logo-icon {
+  width: 36px; height: 36px;
+  background: var(--red);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 0 20px var(--red-glow);
+}
+.logo-text {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 14px; font-weight: 700;
+  letter-spacing: 2px;
+}
+.logo-text span { color: var(--red); }
+
+.header-badge {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 9px; font-weight: 700;
+  background: var(--red-dim);
+  border: 1px solid var(--border-red);
+  color: var(--red);
+  padding: 4px 10px; border-radius: 20px;
+  letter-spacing: 1px;
+}
+
+/* MAIN */
+main {
+  position: relative; z-index: 1;
+  max-width: 1100px; margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+/* SECTION TITLE */
+.section-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px; font-weight: 700;
+  color: var(--red);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  display: flex; align-items: center; gap: 10px;
+}
+.section-title::after {
+  content: '';
+  flex: 1; height: 1px;
+  background: linear-gradient(90deg, var(--border-red), transparent);
+}
+
+/* FORM CARD */
+.form-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px;
+  margin-bottom: 40px;
+  position: relative;
+  overflow: hidden;
+  animation: fadeUp 0.5s ease both;
+}
+.form-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--red), transparent);
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* FORM GRID */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.form-group {
+  display: flex; flex-direction: column; gap: 8px;
+}
+.form-group.full { grid-column: 1 / -1; }
+
+label {
+  font-size: 11px; font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+input[type=text], input[type=url], textarea, select {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  color: var(--text);
+  font-family: 'Exo 2', sans-serif;
+  font-size: 13px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px var(--red-dim);
+}
+select option { background: #111; }
+textarea { resize: vertical; min-height: 80px; }
+::placeholder { color: #444; }
+
+/* VERSION ROWS */
+.versions-section { margin-top: 28px; }
+.versions-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.version-rows { display: flex; flex-direction: column; gap: 10px; }
+.version-row {
+  display: grid;
+  grid-template-columns: 160px 1fr 120px 36px;
+  gap: 10px; align-items: center;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  animation: fadeUp 0.3s ease both;
+}
+
+.device-icon {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 600;
+}
+.device-icon i { color: var(--red); width: 16px; text-align: center; }
+
+.version-tag {
+  display: flex; align-items: center;
+}
+.version-tag input {
+  padding: 8px 10px; font-size: 12px;
+}
+
+/* BUTTONS */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; cursor: pointer; border: none;
+  font-family: 'Exo 2', sans-serif; font-weight: 700;
+  border-radius: 8px; transition: all 0.2s;
+}
+.btn-red {
+  background: var(--red); color: white;
+  padding: 13px 28px; font-size: 13px;
+  box-shadow: 0 4px 20px var(--red-glow);
+}
+.btn-red:hover { background: #ff1a24; transform: translateY(-1px); box-shadow: 0 6px 30px var(--red-glow); }
+.btn-red:active { transform: translateY(0); }
+
+.btn-outline {
+  background: transparent; color: var(--text);
+  border: 1px solid var(--border);
+  padding: 9px 16px; font-size: 12px;
+}
+.btn-outline:hover { border-color: var(--red); color: var(--red); }
+
+.btn-ghost {
+  background: transparent; color: var(--muted);
+  padding: 8px; width: 36px; height: 36px; border-radius: 6px;
+}
+.btn-ghost:hover { background: rgba(229,9,20,0.15); color: var(--red); }
+
+.btn-add {
+  background: var(--surface3);
+  border: 1px dashed var(--border);
+  color: var(--muted); font-size: 12px;
+  padding: 10px 16px; border-radius: 8px;
+  width: 100%; cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Exo 2', sans-serif; font-weight: 600;
+}
+.btn-add:hover { border-color: var(--red); color: var(--red); background: var(--red-dim); }
+
+/* PUBLISH ACTIONS */
+.form-actions {
+  display: flex; gap: 12px; justify-content: flex-end;
+  margin-top: 28px; padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+/* STATUS BADGE */
+.status-select {
+  appearance: none; text-align: center;
+  font-weight: 700; font-size: 11px; letter-spacing: 1px;
+}
+.status-stable { color: var(--green); border-color: rgba(46,204,113,0.3); }
+.status-beta { color: var(--orange); border-color: rgba(243,156,18,0.3); }
+.status-test { color: var(--blue); border-color: rgba(0,170,255,0.3); }
+
+/* POSTS LIST */
+.posts-grid {
+  display: flex; flex-direction: column; gap: 12px;
+}
+.post-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px; align-items: start;
+  transition: border-color 0.2s;
+  animation: fadeUp 0.4s ease both;
+}
+.post-card:hover { border-color: var(--border-red); }
+
+.post-name {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 14px; font-weight: 700;
+  margin-bottom: 4px;
+}
+.post-meta {
+  font-size: 11px; color: var(--muted);
+  display: flex; gap: 12px; flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.post-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip {
+  font-size: 10px; font-weight: 700;
+  padding: 3px 9px; border-radius: 20px;
+  border: 1px solid;
+  display: flex; align-items: center; gap: 5px;
+}
+.chip-apk { color: #2ecc71; border-color: rgba(46,204,113,0.3); background: rgba(46,204,113,0.08); }
+.chip-exe { color: #00aaff; border-color: rgba(0,170,255,0.3); background: rgba(0,170,255,0.08); }
+.chip-ios { color: #aaa; border-color: rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); }
+.chip-tv  { color: #e50914; border-color: rgba(229,9,20,0.3); background: rgba(229,9,20,0.08); }
+.chip-web { color: #f39c12; border-color: rgba(243,156,18,0.3); background: rgba(243,156,18,0.08); }
+
+.post-actions { display: flex; gap: 8px; }
+
+/* BADGE STABLE / BETA */
+.badge {
+  font-size: 9px; font-weight: 700; font-family: 'Orbitron', sans-serif;
+  padding: 2px 8px; border-radius: 20px; letter-spacing: 1px;
+}
+.badge-stable { background: rgba(46,204,113,0.15); color: var(--green); }
+.badge-beta   { background: rgba(243,156,18,0.15); color: var(--orange); }
+.badge-test   { background: rgba(0,170,255,0.15); color: var(--blue); }
+
+/* TOAST */
+#toast {
+  position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(80px);
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 24px;
+  font-size: 13px; font-weight: 600;
+  z-index: 9999; transition: transform 0.4s cubic-bezier(0.4,0,0.2,1), opacity 0.4s;
+  opacity: 0; pointer-events: none; white-space: nowrap;
+}
+#toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+#toast.success { border-color: var(--green); color: var(--green); }
+#toast.error { border-color: var(--red); color: var(--red); }
+
+/* SPINNER */
+.spinner {
+  width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.2);
+  border-top-color: white; border-radius: 50%;
+  animation: spin 0.7s linear infinite; display: none;
+}
+.spinner.active { display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* MODAL */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.8); backdrop-filter: blur(6px);
+  align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  background: var(--surface); border: 1px solid var(--border-red);
+  border-radius: 16px; padding: 32px; max-width: 420px; width: 90%;
+  text-align: center; animation: fadeUp 0.3s ease;
+}
+.modal-box h3 { font-family: 'Orbitron', sans-serif; margin-bottom: 12px; }
+.modal-box p { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+.modal-actions { display: flex; gap: 12px; justify-content: center; }
+
+/* EMPTY STATE */
+.empty-state {
+  text-align: center; padding: 60px 20px;
+  color: var(--muted);
+}
+.empty-state i { font-size: 48px; margin-bottom: 16px; color: #333; }
+.empty-state p { font-size: 14px; }
+
+/* RESPONSIVE */
+@media (max-width: 640px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .version-row { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; }
+  .version-row .device-icon { grid-column: 1/2; }
+  .version-row .version-tag { grid-column: 2/3; }
+  .form-actions { flex-direction: column; }
+  header { padding: 0 16px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-logo">
+    <div class="logo-icon"><i class="fas fa-tv"></i></div>
+    <div class="logo-text">VOX<span>TV</span></div>
+  </div>
+  <span class="header-badge">ADMIN — PUBLICATIONS</span>
+</header>
+
+<main>
+
+  <!-- FORMULAIRE PUBLICATION -->
+  <div class="section-title"><i class="fas fa-plus-circle"></i> Nouvelle publication</div>
+
+  <div class="form-card">
+    <div class="form-grid">
+      <div class="form-group">
+        <label><i class="fas fa-tag"></i> Nom de l'application</label>
+        <input type="text" id="appName" placeholder="Ex: Vox TV">
+      </div>
+      <div class="form-group">
+        <label><i class="fas fa-code-branch"></i> Version principale</label>
+        <input type="text" id="appVersion" placeholder="Ex: 2.1.0">
+      </div>
+      <div class="form-group">
+        <label><i class="fas fa-flag"></i> Statut</label>
+        <select id="appStatus" class="status-select" onchange="updateStatusStyle(this)">
+          <option value="stable">✅ STABLE</option>
+          <option value="beta">⚡ BETA</option>
+          <option value="test">🔬 TEST</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label><i class="fas fa-calendar"></i> Date de sortie</label>
+        <input type="text" id="appDate" placeholder="Ex: 04/03/2026">
+      </div>
+      <div class="form-group full">
+        <label><i class="fas fa-align-left"></i> Notes de mise à jour</label>
+        <textarea id="appNotes" placeholder="Décrivez les nouveautés, corrections de bugs..."></textarea>
+      </div>
+      <div class="form-group full">
+        <label><i class="fas fa-image"></i> URL Logo / Icône (optionnel)</label>
+        <input type="url" id="appLogo" placeholder="https://...">
+      </div>
+    </div>
+
+    <!-- VERSIONS PAR APPAREIL -->
+    <div class="versions-section">
+      <div class="versions-header">
+        <div class="section-title" style="margin:0; font-size:10px;">
+          <i class="fas fa-download"></i> Liens de téléchargement par version
+        </div>
+      </div>
+
+      <div class="version-rows" id="versionRows">
+        <!-- Lignes générées dynamiquement -->
+      </div>
+
+      <button class="btn-add" onclick="addVersionRow()" style="margin-top:10px;">
+        <i class="fas fa-plus"></i> Ajouter une version / appareil
+      </button>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-outline" onclick="clearForm()">
+        <i class="fas fa-undo"></i> Réinitialiser
+      </button>
+      <button class="btn btn-red" id="publishBtn" onclick="publishApp()">
+        <span class="spinner" id="publishSpinner"></span>
+        <i class="fas fa-paper-plane" id="publishIcon"></i>
+        Publier l'application
+      </button>
+    </div>
+  </div>
+
+  <!-- PUBLICATIONS EXISTANTES -->
+  <div class="section-title" style="animation-delay:0.1s">
+    <i class="fas fa-list"></i> Publications existantes
+    <span id="postsCount" style="font-size:10px; color: var(--muted); font-family: 'Exo 2'; font-weight:400; letter-spacing:0; text-transform:none;"></span>
+  </div>
+
+  <div id="postsContainer">
+    <div class="empty-state">
+      <i class="fas fa-satellite-dish"></i>
+      <p>Chargement des publications...</p>
+    </div>
+  </div>
+
+</main>
+
+<!-- MODAL CONFIRMATION SUPPRESSION -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal-box">
+    <h3>⚠️ Supprimer ?</h3>
+    <p>Cette publication sera retirée du store. Cette action est irréversible.</p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeDeleteModal()">Annuler</button>
+      <button class="btn btn-red" id="confirmDeleteBtn">
+        <i class="fas fa-trash"></i> Supprimer
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// =============================================
+// CONFIG — remplace par ton URL Apps Script
+// =============================================
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyb7DHsuFGQs9FupG69mol2S-cI6WCDTgpg1A_3Bf5DLFY4wWBQXnfY6T1BGLJWXAVchQ/exec';
+
+// Types d'appareils disponibles
+const DEVICE_TYPES = [
+  { value: 'apk',     label: 'Android APK',    icon: 'fab fa-android',  chipClass: 'chip-apk' },
+  { value: 'tv',      label: 'Android TV/Box',  icon: 'fas fa-tv',       chipClass: 'chip-tv'  },
+  { value: 'ios',     label: 'iOS (iPhone/iPad)',icon: 'fab fa-apple',   chipClass: 'chip-ios' },
+  { value: 'exe',     label: 'Windows (EXE)',   icon: 'fab fa-windows',  chipClass: 'chip-exe' },
+  { value: 'web',     label: 'Web App',         icon: 'fas fa-globe',    chipClass: 'chip-web' },
+  { value: 'firetv',  label: 'Fire TV',         icon: 'fas fa-fire',     chipClass: 'chip-apk' },
+  { value: 'mac',     label: 'macOS',           icon: 'fab fa-apple',    chipClass: 'chip-ios' },
+];
+
+let posts = [];
+let deleteTargetRow = null;
+
+// =============================================
+// INIT
+// =============================================
+window.addEventListener('DOMContentLoaded', () => {
+  addVersionRow(); // 1 ligne par défaut
+  setDefaultDate();
+  fetchPosts();
+});
+
+function setDefaultDate() {
+  const now = new Date();
+  document.getElementById('appDate').value =
+    now.toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
+
+// =============================================
+// VERSION ROWS
+// =============================================
+function addVersionRow(data = {}) {
+  const row = document.createElement('div');
+  row.className = 'version-row';
+
+  const deviceOptions = DEVICE_TYPES.map(d =>
+    `<option value="${d.value}" ${data.device === d.value ? 'selected' : ''}>${d.label}</option>`
+  ).join('');
+
+  row.innerHTML = `
+    <div class="device-icon">
+      <select class="device-select" style="background:transparent;border:none;color:var(--text);font-weight:600;font-family:'Exo 2';font-size:12px;cursor:pointer;padding:0;" onchange="updateRowIcon(this)">
+        ${deviceOptions}
+      </select>
+    </div>
+    <div>
+      <input type="url" class="dl-link" placeholder="Lien de téléchargement (Google Drive, GitHub...)" value="${data.url || ''}">
+    </div>
+    <div class="version-tag">
+      <input type="text" class="dl-version" placeholder="v1.0.0" value="${data.version || ''}">
+    </div>
+    <button class="btn btn-ghost" onclick="removeVersionRow(this)" title="Supprimer">
+      <i class="fas fa-times"></i>
+    </button>
+  `;
+  document.getElementById('versionRows').appendChild(row);
+}
+
+function removeVersionRow(btn) {
+  const rows = document.querySelectorAll('.version-row');
+  if (rows.length <= 1) { showToast('Au moins une version requise', 'error'); return; }
+  btn.closest('.version-row').remove();
+}
+
+function updateRowIcon(sel) { /* live icon update si besoin */ }
+
+// =============================================
+// PUBLISH
+// =============================================
+async function publishApp() {
+  const name    = document.getElementById('appName').value.trim();
+  const version = document.getElementById('appVersion').value.trim();
+  const status  = document.getElementById('appStatus').value;
+  const date    = document.getElementById('appDate').value.trim();
+  const notes   = document.getElementById('appNotes').value.trim();
+  const logo    = document.getElementById('appLogo').value.trim();
+
+  if (!name || !version) { showToast('Nom et version requis !', 'error'); return; }
+
+  // Récupérer toutes les versions
+  const versionRows = document.querySelectorAll('.version-row');
+  const versions = [];
+  versionRows.forEach(row => {
+    const device  = row.querySelector('.device-select').value;
+    const url     = row.querySelector('.dl-link').value.trim();
+    const ver     = row.querySelector('.dl-version').value.trim();
+    if (url) versions.push({ device, url, version: ver });
+  });
+
+  if (versions.length === 0) { showToast('Au moins un lien de téléchargement requis', 'error'); return; }
+
+  setLoading(true);
+
+  try {
+    const params = new URLSearchParams({
+      action: 'publish',
+      name, version, status, date, notes, logo,
+      versions: JSON.stringify(versions)
+    });
+    const resp = await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`);
+    const data = await resp.json();
+    if (data.success) {
+      showToast('✅ Application publiée !', 'success');
+      clearForm();
+      fetchPosts();
+    } else {
+      showToast('Erreur : ' + (data.error || 'inconnue'), 'error');
+    }
+  } catch(e) {
+    showToast('Erreur de connexion au serveur', 'error');
+    console.error(e);
+  }
+  setLoading(false);
+}
+
+function setLoading(state) {
+  document.getElementById('publishSpinner').classList.toggle('active', state);
+  document.getElementById('publishIcon').style.display = state ? 'none' : '';
+  document.getElementById('publishBtn').disabled = state;
+}
+
+// =============================================
+// FETCH POSTS
+// =============================================
+async function fetchPosts() {
+  try {
+    const resp = await fetch(`${APPS_SCRIPT_URL}?action=list`);
+    const data = await resp.json();
+    posts = data.posts || [];
+    renderPosts();
+  } catch(e) {
+    document.getElementById('postsContainer').innerHTML = `
+      <div class="empty-state">
+        <i class="fas fa-exclamation-triangle"></i>
+        <p>Impossible de charger les publications.<br>Vérifie l'URL Apps Script.</p>
+      </div>`;
+  }
+}
+
+function renderPosts() {
+  const container = document.getElementById('postsContainer');
+  document.getElementById('postsCount').textContent = posts.length > 0 ? `— ${posts.length} app(s)` : '';
+
+  if (posts.length === 0) {
+    container.innerHTML = `<div class="empty-state"><i class="fas fa-box-open"></i><p>Aucune publication pour l'instant.</p></div>`;
+    return;
+  }
+
+  container.innerHTML = '';
+  posts.forEach((p, i) => {
+    const badgeClass = { stable:'badge-stable', beta:'badge-beta', test:'badge-test' }[p.status] || 'badge-stable';
+    const badgeLabel = { stable:'STABLE', beta:'BETA', test:'TEST' }[p.status] || 'STABLE';
+
+    const chips = (p.versions || []).map(v => {
+      const dt = DEVICE_TYPES.find(d => d.value === v.device) || DEVICE_TYPES[0];
+      return `<span class="chip ${dt.chipClass}"><i class="${dt.icon}"></i>${dt.label}${v.version ? ' '+v.version : ''}</span>`;
+    }).join('');
+
+    const card = document.createElement('div');
+    card.className = 'post-card';
+    card.style.animationDelay = (i * 0.05) + 's';
+    card.innerHTML = `
+      <div>
+        <div class="post-name">
+          ${p.logo ? `<img src="${p.logo}" style="width:20px;height:20px;object-fit:contain;border-radius:4px;margin-right:8px;vertical-align:middle;">` : ''}
+          ${p.name}
+          <span class="badge ${badgeClass}" style="margin-left:8px;">${badgeLabel}</span>
+        </div>
+        <div class="post-meta">
+          <span><i class="fas fa-code-branch" style="color:var(--red)"></i> v${p.version}</span>
+          <span><i class="fas fa-calendar" style="color:var(--muted)"></i> ${p.date || '—'}</span>
+          <span><i class="fas fa-download" style="color:var(--muted)"></i> ${(p.versions||[]).length} version(s)</span>
+        </div>
+        <div class="post-chips">${chips}</div>
+        ${p.notes ? `<p style="margin-top:10px;font-size:12px;color:var(--muted);line-height:1.6;">${p.notes}</p>` : ''}
+      </div>
+      <div class="post-actions">
+        <button class="btn btn-ghost" onclick="editPost(${i})" title="Modifier">
+          <i class="fas fa-pen"></i>
+        </button>
+        <button class="btn btn-ghost" onclick="openDeleteModal(${i})" title="Supprimer">
+          <i class="fas fa-trash" style="color:var(--red)"></i>
+        </button>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+// =============================================
+// EDIT
+// =============================================
+function editPost(i) {
+  const p = posts[i];
+  document.getElementById('appName').value    = p.name || '';
+  document.getElementById('appVersion').value = p.version || '';
+  document.getElementById('appStatus').value  = p.status || 'stable';
+  document.getElementById('appDate').value    = p.date || '';
+  document.getElementById('appNotes').value   = p.notes || '';
+  document.getElementById('appLogo').value    = p.logo || '';
+
+  document.getElementById('versionRows').innerHTML = '';
+  (p.versions || []).forEach(v => addVersionRow(v));
+  if ((p.versions||[]).length === 0) addVersionRow();
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  showToast('Publication chargée pour modification', 'success');
+}
+
+// =============================================
+// DELETE
+// =============================================
+function openDeleteModal(rowIndex) {
+  deleteTargetRow = rowIndex;
+  document.getElementById('deleteModal').classList.add('open');
+  document.getElementById('confirmDeleteBtn').onclick = () => confirmDelete(rowIndex);
+}
+function closeDeleteModal() {
+  document.getElementById('deleteModal').classList.remove('open');
+  deleteTargetRow = null;
+}
+
+async function confirmDelete(i) {
+  const p = posts[i];
+  closeDeleteModal();
+  try {
+    const params = new URLSearchParams({ action: 'delete', rowId: p.rowId });
+    const resp = await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`);
+    const data = await resp.json();
+    if (data.success) {
+      showToast('Publication supprimée', 'success');
+      fetchPosts();
+    } else showToast('Erreur suppression', 'error');
+  } catch(e) { showToast('Erreur réseau', 'error'); }
+}
+
+// =============================================
+// UTILS
+// =============================================
+function clearForm() {
+  ['appName','appVersion','appDate','appNotes','appLogo'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('appStatus').value = 'stable';
+  document.getElementById('versionRows').innerHTML = '';
+  addVersionRow();
+  setDefaultDate();
+}
+
+function updateStatusStyle(sel) {
+  sel.className = 'status-select status-' + sel.value;
+}
+
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
