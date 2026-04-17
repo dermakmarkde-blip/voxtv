@@ -340,6 +340,42 @@
         .prio-m3u-divider { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
         .prio-m3u-divider::before, .prio-m3u-divider::after { content:''; flex:1; height:1px; background:#1e1e1e; }
         .prio-m3u-divider span { font-size: 10px; color: #333; letter-spacing: 2px; }
+
+        /* ── PARRAINAGE ── */
+        #parrainage-section .parr-card {
+            background: #1e1e1e; border: 1px solid #2a2a2a;
+            border-radius: 12px; padding: 22px 24px; margin-bottom: 20px;
+        }
+        #parrainage-section .parr-card-title {
+            font-size: 11px; letter-spacing: 2px; color: #f39c12;
+            font-weight: 700; margin-bottom: 16px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .parr-form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 12px; align-items: end; }
+        @media(max-width:800px){ .parr-form-grid { grid-template-columns: 1fr 1fr; } }
+        @media(max-width:500px){ .parr-form-grid { grid-template-columns: 1fr; } }
+        .parr-form-grid label { display:block; font-size:10px; color:#666; letter-spacing:1px; margin-bottom:5px; }
+        .parr-form-grid input { width:100%; padding:10px 12px; background:#222; border:1px solid #333; border-radius:6px; color:#fff; font-size:13px; box-sizing:border-box; }
+        .parr-form-grid input:focus { outline:none; border-color:rgba(243,156,18,.4); }
+        #btn-create-code {
+            padding:10px 20px; background:linear-gradient(135deg,#f39c12,#e67e22);
+            color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700;
+            cursor:pointer; display:flex; align-items:center; gap:8px; white-space:nowrap;
+            box-shadow: 0 4px 14px rgba(243,156,18,.3); transition: filter .15s;
+        }
+        #btn-create-code:hover { filter: brightness(1.1); }
+        .parr-stats-row { display:flex; gap:14px; margin-bottom:20px; flex-wrap:wrap; }
+        .parr-stat { background:#141414; border:1px solid #1e1e1e; border-radius:10px; padding:14px 20px; flex:1; min-width:110px; }
+        .parr-stat-val { font-size:24px; font-weight:900; color:#f39c12; }
+        .parr-stat-lbl { font-size:10px; color:#555; margin-top:3px; letter-spacing:1px; }
+        .badge-parr-actif    { background:rgba(243,156,18,.15); color:#f39c12; padding:2px 9px; border-radius:12px; font-size:11px; font-weight:700; }
+        .badge-parr-used     { background:rgba(46,204,113,.15); color:#2ecc71; padding:2px 9px; border-radius:12px; font-size:11px; font-weight:700; }
+        .badge-parr-expire   { background:rgba(229,9,20,.15);   color:#e50914; padding:2px 9px; border-radius:12px; font-size:11px; font-weight:700; }
+        .badge-parr-inactive { background:rgba(100,100,100,.15);color:#666;    padding:2px 9px; border-radius:12px; font-size:11px; font-weight:700; }
+        .btn-copy-code { padding:5px 10px; font-size:11px; border-radius:4px; cursor:pointer; border:none; background:#333; color:#f39c12; font-weight:700; transition:background .2s; }
+        .btn-copy-code:hover { background:#444; }
+        .parr-code-cell { font-family:monospace; font-size:14px; font-weight:700; color:#f39c12; letter-spacing:2px; }
+        #parr-gen-msg { font-size:12px; min-height:20px; margin-top:10px; }
     </style>
 </head>
 <body>
@@ -394,6 +430,7 @@
         <button class="tab-btn" onclick="showTab('tarifs-section',event)"><i class="fas fa-tags"></i> ABONNEMENTS</button>
         <button class="tab-btn" onclick="showTab('update-section',event);loadHistory()"><i class="fas fa-rocket"></i> MISES À JOUR</button>
         <button class="tab-btn" onclick="showTab('priorite-section',event);prioLoadData()"><i class="fas fa-star"></i> PRIORITÉ CHAÎNES</button>
+        <button class="tab-btn" onclick="showTab('parrainage-section',event);loadParrainage()" style="border:1px solid rgba(243,156,18,.3);"><i class="fas fa-gift"></i> PARRAINAGE</button>
     </div>
 
     <!-- ---- UTILISATEURS ---- -->
@@ -812,6 +849,107 @@
 
     </div><!-- /#priorite-section -->
 
+    <!-- ---- PARRAINAGE ---- -->
+    <div id="parrainage-section" class="section">
+
+        <!-- Stats row -->
+        <div class="parr-stats-row">
+            <div class="parr-stat"><div class="parr-stat-val" id="parr-st-total">—</div><div class="parr-stat-lbl">CODES CRÉÉS</div></div>
+            <div class="parr-stat"><div class="parr-stat-val" id="parr-st-actif">—</div><div class="parr-stat-lbl">CODES ACTIFS</div></div>
+            <div class="parr-stat"><div class="parr-stat-val" id="parr-st-used">—</div><div class="parr-stat-lbl">CODES UTILISÉS</div></div>
+            <div class="parr-stat"><div class="parr-stat-val" id="parr-st-bonus" style="color:#2ecc71;">7j</div><div class="parr-stat-lbl">BONUS PAR DÉFAUT</div></div>
+        </div>
+
+        <!-- Créer un code -->
+        <div class="parr-card">
+            <div class="parr-card-title"><i class="fas fa-gift"></i> CRÉER UN CODE DE PARRAINAGE</div>
+
+            <div class="parr-form-grid">
+                <div>
+                    <label>CODE (vide = auto)</label>
+                    <input type="text" id="parr-new-code" placeholder="Ex: PROMO2025" style="text-transform:uppercase;"
+                           oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9\-]/g,'')">
+                </div>
+                <div>
+                    <label>NOTE / CLIENT CIBLE (optionnel)</label>
+                    <input type="text" id="parr-new-note" placeholder="Ex: Pour Jean Dupont, client fidèle">
+                </div>
+                <div>
+                    <label>BONUS JOURS (défaut : 7)</label>
+                    <input type="number" id="parr-new-bonus" value="7" min="1" max="365" placeholder="7">
+                </div>
+                <div>
+                    <label>EXPIRATION (optionnel)</label>
+                    <input type="date" id="parr-new-expires">
+                </div>
+            </div>
+
+            <div style="margin-top:14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <button id="btn-create-code" onclick="createParrCode()">
+                    <i class="fas fa-plus-circle"></i> GÉNÉRER LE CODE
+                </button>
+                <button onclick="parrAutoFillCode()" style="background:#252525; color:#aaa; border:1px solid #333; padding:10px 16px; border-radius:8px; font-size:12px; cursor:pointer;">
+                    <i class="fas fa-random"></i> Code aléatoire
+                </button>
+            </div>
+            <div id="parr-gen-msg"></div>
+
+            <!-- Zone de partage après création -->
+            <div id="parr-share-box" style="display:none; margin-top:16px; background:#0d0d0d; border:1px solid rgba(243,156,18,.3); border-radius:10px; padding:16px;">
+                <div style="font-size:11px; color:#666; letter-spacing:1px; margin-bottom:10px;">📤 CODE PRÊT À ENVOYER</div>
+                <div style="background:#141414; border-radius:8px; padding:14px; margin-bottom:12px; font-family:monospace; font-size:13px; color:#ccc; line-height:1.8;" id="parr-share-text">—</div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button onclick="parrCopyShareText()" style="background:#333; color:#f39c12; border:1px solid rgba(243,156,18,.3); padding:8px 16px; border-radius:6px; font-size:12px; cursor:pointer; font-weight:700;">
+                        <i class="fas fa-copy"></i> Copier le message
+                    </button>
+                    <button onclick="parrShareWhatsApp()" style="background:#25D366; color:#fff; border:none; padding:8px 16px; border-radius:6px; font-size:12px; cursor:pointer; font-weight:700;">
+                        <i class="fab fa-whatsapp"></i> WhatsApp
+                    </button>
+                    <button onclick="document.getElementById('parr-share-box').style.display='none'" style="background:transparent; color:#555; border:1px solid #333; padding:8px 14px; border-radius:6px; font-size:12px; cursor:pointer;">
+                        <i class="fas fa-times"></i> Fermer
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table des codes -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+            <div style="font-size:13px; color:#666;"><i class="fas fa-list"></i> Historique de tous les codes générés</div>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <select id="parr-filter" onchange="renderParrTable()" style="background:#222; color:#fff; border:1px solid #333; padding:7px 10px; border-radius:6px; font-size:12px;">
+                    <option value="">Tous les codes</option>
+                    <option value="actif">Actifs seulement</option>
+                    <option value="used">Utilisés seulement</option>
+                    <option value="expire">Expirés</option>
+                </select>
+                <button onclick="loadParrainage()" style="background:#333; color:#aaa; border:none; padding:8px 14px; border-radius:6px; font-size:12px; cursor:pointer;">
+                    <i class="fas fa-sync-alt"></i> Actualiser
+                </button>
+            </div>
+        </div>
+
+        <table id="parr-table">
+            <thead>
+                <tr>
+                    <th>CODE</th>
+                    <th>NOTE / CLIENT</th>
+                    <th>BONUS</th>
+                    <th>STATUT</th>
+                    <th>UTILISÉ PAR</th>
+                    <th>DATE CRÉATION</th>
+                    <th>EXPIRE LE</th>
+                    <th>ACTIONS</th>
+                </tr>
+            </thead>
+            <tbody id="parr-body">
+                <tr><td colspan="8" style="text-align:center;color:#444;padding:30px;">Chargement...</td></tr>
+            </tbody>
+        </table>
+
+
+
+    </div><!-- /#parrainage-section -->
+
 </div><!-- /#dashboard -->
 
 <!-- ── LECTEUR FLOTTANT PERMANENT ── -->
@@ -1043,9 +1181,29 @@ async function loadData() {
         globalUsers.forEach(function(u) {
             var devCount = u.appareils ? u.appareils.split(',').filter(function(d){ return d.trim(); }).length : 0;
             var isVie    = u.duree === 'VIE';
-            var days     = isVie ? '∞' : parseInt(u.duree);
-            var badgeCls = isVie ? 'badge-vie' : days > 0 ? 'badge-active' : 'badge-exp';
-            var badgeTxt = isVie ? 'À VIE' : days > 0 ? days + 'j' : 'EXPIRÉ';
+            var badgeCls, badgeTxt;
+            if (isVie) {
+                badgeCls = 'badge-vie';
+                badgeTxt = 'À VIE';
+            } else {
+                var totalDays = parseInt(u.duree) || 0;
+                var remaining = 0;
+                if (u.date_activation && totalDays > 0) {
+                    var start   = new Date(u.date_activation);
+                    var expiry  = new Date(start.getTime() + totalDays * 86400000);
+                    var today   = new Date();
+                    today.setHours(0,0,0,0);
+                    expiry.setHours(0,0,0,0);
+                    remaining   = Math.ceil((expiry - today) / 86400000);
+                }
+                if (remaining > 0) {
+                    badgeCls = 'badge-active';
+                    badgeTxt = remaining + 'j restant' + (remaining > 1 ? 's' : '');
+                } else {
+                    badgeCls = 'badge-exp';
+                    badgeTxt = 'EXPIRÉ';
+                }
+            }
             var cle      = esc(u.cle);
             var msg      = esc(u.message || '');
             var scr      = u.max_ecrans || 1;
@@ -2941,6 +3099,222 @@ function prioExportJSON() {
 }
 
 function _prioEsc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// =====================================================
+// PARRAINAGE — CODES DE PARRAINAGE
+// =====================================================
+var globalParrCodes = [];
+var _lastCreatedCode = '';
+var _lastCreatedBonus = 7;
+
+async function loadParrainage() {
+    try {
+        var rows = await sbGet('codes_parrainage', 'select=*&order=id.desc');
+        globalParrCodes = rows || [];
+    } catch(e) {
+        globalParrCodes = [];
+        // Table peut ne pas encore exister
+        console.warn('codes_parrainage:', e.message);
+    }
+    renderParrStats();
+    renderParrTable();
+}
+
+function renderParrStats() {
+    var total  = globalParrCodes.length;
+    var used   = globalParrCodes.filter(function(c){ return c.used_by && c.used_by.trim(); }).length;
+    var today  = new Date().toISOString().split('T')[0];
+    var actif  = globalParrCodes.filter(function(c){
+        if (!c.actif) return false;
+        if (c.used_by && c.used_by.trim()) return false;
+        if (c.expires_at && c.expires_at < today) return false;
+        return true;
+    }).length;
+    document.getElementById('parr-st-total').innerText = total;
+    document.getElementById('parr-st-actif').innerText = actif;
+    document.getElementById('parr-st-used').innerText  = used;
+}
+
+function _parrGetStatus(c) {
+    var today = new Date().toISOString().split('T')[0];
+    if (c.used_by && c.used_by.trim()) return 'used';
+    if (!c.actif) return 'inactive';
+    if (c.expires_at && c.expires_at < today) return 'expire';
+    return 'actif';
+}
+
+function renderParrTable() {
+    var filter = document.getElementById('parr-filter') ? document.getElementById('parr-filter').value : '';
+    var rows = globalParrCodes.filter(function(c){
+        if (!filter) return true;
+        return _parrGetStatus(c) === filter;
+    });
+
+    var tbody = document.getElementById('parr-body');
+    if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#444;padding:30px;"><i class="fas fa-gift" style="margin-right:8px;"></i>Aucun code de parrainage trouvé</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = '';
+    rows.forEach(function(c) {
+        var status = _parrGetStatus(c);
+        var badgeMap = {
+            actif:    '<span class="badge-parr-actif">ACTIF</span>',
+            used:     '<span class="badge-parr-used">UTILISÉ</span>',
+            expire:   '<span class="badge-parr-expire">EXPIRÉ</span>',
+            inactive: '<span class="badge-parr-inactive">INACTIF</span>'
+        };
+        var badge = badgeMap[status] || '';
+        var usedByTxt = (c.used_by && c.used_by.trim()) ?
+            '<span style="font-family:monospace;color:#2ecc71;font-weight:700;">' + esc(c.used_by) + '</span>' +
+            (c.used_at ? '<br><span style="font-size:10px;color:#555;">' + c.used_at + '</span>' : '') :
+            '<span style="color:#333;">—</span>';
+
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+            '<td class="parr-code-cell">' + esc(c.code) + '</td>' +
+            '<td style="color:#aaa;font-size:12px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + esc(c.note||'') + '">' + (esc(c.note)||'<span style="color:#333;">—</span>') + '</td>' +
+            '<td style="color:#2ecc71;font-weight:700;text-align:center;">+' + (c.bonus_jours||7) + 'j</td>' +
+            '<td>' + badge + '</td>' +
+            '<td>' + usedByTxt + '</td>' +
+            '<td style="color:#555;font-size:11px;">' + (c.created_at||'—') + '</td>' +
+            '<td style="color:#555;font-size:11px;">' + (c.expires_at ? c.expires_at : '<span style="color:#333;">—</span>') + '</td>' +
+            '<td style="white-space:nowrap;">' +
+                '<button class="btn-copy-code" onclick="parrCopyCode(\'' + esc(c.code) + '\',\'' + (c.bonus_jours||7) + '\')" title="Copier"><i class="fas fa-copy"></i></button> ' +
+                (status === 'actif' ?
+                    '<button class="action-btn btn-rst" onclick="parrDeactivate(' + c.id + ')" title="Désactiver"><i class="fas fa-ban"></i></button> ' : '') +
+                '<button class="action-btn btn-del" onclick="parrDelete(' + c.id + ',\'' + esc(c.code) + '\')" title="Supprimer"><i class="fas fa-trash"></i></button>' +
+            '</td>';
+        tbody.appendChild(tr);
+    });
+}
+
+function parrAutoFillCode() {
+    var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    var r = 'PARR-';
+    for (var i = 0; i < 6; i++) r += chars.charAt(Math.floor(Math.random() * chars.length));
+    document.getElementById('parr-new-code').value = r;
+}
+
+async function createParrCode() {
+    var rawCode = document.getElementById('parr-new-code').value.trim().toUpperCase().replace(/[^A-Z0-9\-]/g,'');
+    if (!rawCode) {
+        // auto-générer
+        var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        var r = 'PARR-';
+        for (var i = 0; i < 6; i++) r += chars.charAt(Math.floor(Math.random() * chars.length));
+        rawCode = r;
+    }
+    var note    = document.getElementById('parr-new-note').value.trim();
+    var bonus   = parseInt(document.getElementById('parr-new-bonus').value) || 7;
+    var expires = document.getElementById('parr-new-expires').value || null;
+
+    var msgEl = document.getElementById('parr-gen-msg');
+    msgEl.style.color = '#0af';
+    msgEl.innerText = '⏳ Création du code...';
+
+    try {
+        await sbInsert('codes_parrainage', {
+            code:       rawCode,
+            note:       note,
+            bonus_jours: bonus,
+            actif:      true,
+            created_at: new Date().toISOString().split('T')[0],
+            expires_at: expires,
+            used_by:    '',
+            used_at:    null
+        });
+        msgEl.style.color = '#2ecc71';
+        msgEl.innerText = '✅ Code "' + rawCode + '" créé avec succès !';
+        toast('🎁 Code ' + rawCode + ' créé — +' + bonus + 'j offerts', '#f39c12');
+
+        // Afficher le bloc de partage
+        _lastCreatedCode  = rawCode;
+        _lastCreatedBonus = bonus;
+        var shareText = '🎁 CODE DE PARRAINAGE MY BOX TV\n\n' +
+            '━━━━━━━━━━━━━━━━━━\n' +
+            '  CODE : ' + rawCode + '\n' +
+            '━━━━━━━━━━━━━━━━━━\n\n' +
+            '✅ Entrez ce code lors de votre abonnement\n' +
+            '🎉 Vous recevrez +' + bonus + ' jours OFFERTS en bonus !\n\n' +
+            (expires ? '⚠️ Valable jusqu\'au : ' + expires + '\n\n' : '') +
+            '📱 MY BOX TV — Streaming illimité';
+        document.getElementById('parr-share-text').innerText = shareText;
+        document.getElementById('parr-share-box').style.display = 'block';
+
+        // Reset form
+        document.getElementById('parr-new-code').value    = '';
+        document.getElementById('parr-new-note').value    = '';
+        document.getElementById('parr-new-bonus').value   = '7';
+        document.getElementById('parr-new-expires').value = '';
+
+        await loadParrainage();
+        setTimeout(function(){ msgEl.innerText = ''; }, 4000);
+    } catch(e) {
+        msgEl.style.color = '#e50914';
+        msgEl.innerText = '❌ Erreur : ' + e.message + (e.message.includes('unique') ? ' (ce code existe déjà)' : '');
+    }
+}
+
+function parrCopyShareText() {
+    var txt = document.getElementById('parr-share-text').innerText;
+    navigator.clipboard.writeText(txt).then(function(){
+        toast('📋 Message copié !', '#f39c12');
+    }).catch(function(){
+        // Fallback
+        var ta = document.createElement('textarea');
+        ta.value = txt; document.body.appendChild(ta);
+        ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta);
+        toast('📋 Message copié !', '#f39c12');
+    });
+}
+
+function parrShareWhatsApp() {
+    var txt = document.getElementById('parr-share-text').innerText;
+    var url = 'https://wa.me/?text=' + encodeURIComponent(txt);
+    window.open(url, '_blank');
+}
+
+function parrCopyCode(code, bonus) {
+    var txt = '🎁 CODE DE PARRAINAGE MY BOX TV\n\n' +
+        '━━━━━━━━━━━━━━━━━━\n' +
+        '  CODE : ' + code + '\n' +
+        '━━━━━━━━━━━━━━━━━━\n\n' +
+        '✅ Entrez ce code lors de votre abonnement\n' +
+        '🎉 Vous recevrez +' + bonus + ' jours OFFERTS en bonus !\n\n' +
+        '📱 MY BOX TV — Streaming illimité';
+    navigator.clipboard.writeText(txt).then(function(){
+        toast('📋 Code ' + code + ' copié !', '#f39c12');
+    }).catch(function(){
+        var ta = document.createElement('textarea');
+        ta.value = txt; document.body.appendChild(ta);
+        ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta);
+        toast('📋 Code copié !', '#f39c12');
+    });
+}
+
+async function parrDeactivate(id) {
+    if (!confirm('Désactiver ce code de parrainage ?')) return;
+    try {
+        await sbPatch('codes_parrainage', 'id=eq.' + id, { actif: false });
+        toast('🚫 Code désactivé', '#ff6b6b');
+        await loadParrainage();
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+async function parrDelete(id, code) {
+    if (!confirm('Supprimer définitivement le code "' + code + '" ?')) return;
+    try {
+        await sbDelete('codes_parrainage', 'id=eq.' + id);
+        toast('🗑 Code supprimé', '#ff6b6b');
+        await loadParrainage();
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+
 </script>
 </body>
 </html>
