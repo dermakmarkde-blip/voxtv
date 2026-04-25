@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - My Box TV (v6 — Optimisé)</title>
+    <title>Admin - Vox TV (v6 — Optimisé)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js" defer></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -397,7 +397,7 @@
     <div class="header">
         <h1>
             <img src="https://upload.wikimedia.org/wikipedia/commons/4/45/COMPANY%281%29.png" width="55" style="border-radius:8px;">
-            MY BOX TV <span style="font-size:14px; color:#aaa;">MANAGER</span>
+            VOX TV <span style="font-size:14px; color:#aaa;">MANAGER</span>
         </h1>
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
             <button id="maint-btn" onclick="toggleMaintenance()" style="background:#444; font-size:12px;">
@@ -456,7 +456,7 @@
             <button onclick="addUser()"><i class="fas fa-plus"></i> CRÉER & PDF</button>
         </div>
         <table>
-            <thead><tr><th>CLÉ</th><th>DURÉE</th><th>ÉCRANS</th><th>APPAREILS</th><th>DATE</th><th>MESSAGE</th><th>ACTIONS</th></tr></thead>
+            <thead><tr><th>CLÉ</th><th>DURÉE</th><th>ÉCRANS</th><th>APPAREILS</th><th>DATE</th><th>MESSAGE</th><th>PARRAIN</th><th>ACTIONS</th></tr></thead>
             <tbody id="users-body"></tbody>
         </table>
     </div>
@@ -1146,7 +1146,8 @@ async function loadData() {
             sbGet('utilisateurs', 'select=*&order=date_activation.desc'),
             sbGet('sources', 'select=*&order=id.asc'),
             sbGet('chaines', 'select=*&order=nom.asc'),
-            sbGet('config', 'id=eq.1&select=maintenance,message_accueil')
+            sbGet('config', 'id=eq.1&select=maintenance,message_accueil'),
+            sbGet('codes_parrainage', 'select=code,used_by')
         ]);
         // ✅ Promise.allSettled : même si une requête échoue, les autres continuent
         globalUsers   = (results[0].status === 'fulfilled' ? results[0].value : null) || [];
@@ -1154,6 +1155,13 @@ async function loadData() {
         globalChaines = (results[2].status === 'fulfilled' ? results[2].value : null) || [];
         var cfgResult = (results[3].status === 'fulfilled' ? results[3].value : null);
         var cfg = cfgResult;
+        var parrCodes = (results[4].status === 'fulfilled' ? results[4].value : null) || [];
+        var parrainMap = {};
+        parrCodes.forEach(function(c) {
+            if (c.used_by && c.used_by.trim()) {
+                parrainMap[c.used_by.trim()] = c.code;
+            }
+        });
 
         // STATS
         var total  = globalUsers.length;
@@ -1215,6 +1223,7 @@ async function loadData() {
                 '<td style="color:#666;font-size:12px;">' + devCount + ' / ' + scr + ' connecté(s)</td>' +
                 '<td style="color:#555;font-size:11px;">' + (u.date_activation || '—') + '</td>' +
                 '<td style="color:#aaa;font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + msg + '">' + (msg || '—') + '</td>' +
+                '<td style="font-family:monospace;font-size:11px;font-weight:700;color:#f39c12;">' + (parrainMap[u.cle] ? esc(parrainMap[u.cle]) : '<span style="color:#333;">—</span>') + '</td>' +
                 '<td style="white-space:nowrap;">' +
                     '<button class="action-btn btn-pdf"  onclick="generatePDF(\'' + cle + '\',\'' + u.duree + '\',\'' + scr + '\')" title="PDF"><i class="fas fa-file-pdf"></i></button> ' +
                     '<button class="action-btn btn-edit" onclick="editUser(\'' + cle + '\',\'' + u.duree + '\',\'' + scr + '\',\'' + msg + '\')" title="Modifier"><i class="fas fa-edit"></i></button> ' +
@@ -1441,7 +1450,7 @@ function downloadBackup() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'backup_myboxtv_' + new Date().toISOString().slice(0,10) + '.csv';
+    a.download = 'backup_voxtv_' + new Date().toISOString().slice(0,10) + '.csv';
     a.click();
     URL.revokeObjectURL(url);
     toast('💾 Backup téléchargé', '#2ecc71');
@@ -1615,7 +1624,7 @@ function generatePDF(key, days, screens) {
 
     doc.setFillColor(20, 20, 20); doc.rect(0, 0, 210, 42, 'F');
     doc.setTextColor(255,255,255); doc.setFontSize(28); doc.setFont("helvetica","bold");
-    doc.text("MY BOX TV", 105, 20, { align: "center" });
+    doc.text("VOX TV", 105, 20, { align: "center" });
     doc.setFontSize(12); doc.setTextColor(229,9,20);
     doc.text("CERTIFICAT D'ABONNEMENT", 105, 31, { align: "center" });
     doc.setFontSize(9); doc.setTextColor(150,150,150);
@@ -1635,7 +1644,7 @@ function generatePDF(key, days, screens) {
     doc.setFontSize(14); doc.setFont("helvetica","bold"); doc.text("INSTRUCTIONS D'ACCÈS", 20, 128);
     doc.setFontSize(11); doc.setFont("helvetica","normal");
     doc.text("1. Connectez votre appareil à Internet.", 22, 140);
-    doc.text("2. Ouvrez l'application MY BOX TV.", 22, 150);
+    doc.text("2. Ouvrez l'application VOX TV.", 22, 150);
     doc.text("3. Entrez votre ID ci-dessus dans le champ de connexion.", 22, 160);
     doc.text("4. Profitez de +14.000 chaînes en HD/4K !", 22, 170);
     doc.line(20, 180, 190, 180);
@@ -1649,7 +1658,7 @@ function generatePDF(key, days, screens) {
     doc.setTextColor(0,0,0); doc.setFont("helvetica","normal"); doc.setFontSize(14);
     doc.text("63 82 87 67", 105, 280, { align: "center" });
     doc.setFontSize(9); doc.setTextColor(150,150,150);
-    doc.text("www.myboxtv.com  —  Merci de votre confiance !", 105, 291, { align: "center" });
+    doc.text("www.voxtv.com  —  Merci de votre confiance !", 105, 291, { align: "center" });
 }
 
 // =====================================================
@@ -3232,14 +3241,14 @@ async function createParrCode() {
         // Afficher le bloc de partage
         _lastCreatedCode  = rawCode;
         _lastCreatedBonus = bonus;
-        var shareText = '🎁 CODE DE PARRAINAGE MY BOX TV\n\n' +
+        var shareText = '🎁 CODE DE PARRAINAGE VOX TV\n\n' +
             '━━━━━━━━━━━━━━━━━━\n' +
             '  CODE : ' + rawCode + '\n' +
             '━━━━━━━━━━━━━━━━━━\n\n' +
             '✅ Entrez ce code lors de votre abonnement\n' +
             '🎉 Vous recevrez +' + bonus + ' jours OFFERTS en bonus !\n\n' +
             (expires ? '⚠️ Valable jusqu\'au : ' + expires + '\n\n' : '') +
-            '📱 MY BOX TV — Streaming illimité';
+            '📱 VOX TV — Streaming illimité';
         document.getElementById('parr-share-text').innerText = shareText;
         document.getElementById('parr-share-box').style.display = 'block';
 
@@ -3278,13 +3287,13 @@ function parrShareWhatsApp() {
 }
 
 function parrCopyCode(code, bonus) {
-    var txt = '🎁 CODE DE PARRAINAGE MY BOX TV\n\n' +
+    var txt = '🎁 CODE DE PARRAINAGE VOX TV\n\n' +
         '━━━━━━━━━━━━━━━━━━\n' +
         '  CODE : ' + code + '\n' +
         '━━━━━━━━━━━━━━━━━━\n\n' +
         '✅ Entrez ce code lors de votre abonnement\n' +
         '🎉 Vous recevrez +' + bonus + ' jours OFFERTS en bonus !\n\n' +
-        '📱 MY BOX TV — Streaming illimité';
+        '📱 VOX TV — Streaming illimité';
     navigator.clipboard.writeText(txt).then(function(){
         toast('📋 Code ' + code + ' copié !', '#f39c12');
     }).catch(function(){
