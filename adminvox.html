@@ -48,6 +48,15 @@
         .badge-active { background: rgba(46,204,113,.2); color: #2ecc71; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight:700; }
         .badge-exp    { background: rgba(229,9,20,.2);   color: #e50914; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight:700; }
 
+        /* ── PRÉSENCE EN LIGNE ── */
+        .dot-online  { display:inline-block; width:8px; height:8px; background:#2ecc71; border-radius:50%; margin-right:5px; box-shadow:0 0 6px #2ecc71; animation:pulse-green 1.5s ease-in-out infinite; vertical-align:middle; flex-shrink:0; }
+        .dot-offline { display:inline-block; width:8px; height:8px; background:#333;    border-radius:50%; margin-right:5px; vertical-align:middle; flex-shrink:0; }
+        @keyframes pulse-green { 0%,100%{box-shadow:0 0 4px rgba(46,204,113,.6)} 50%{box-shadow:0 0 12px rgba(46,204,113,.9),0 0 22px rgba(46,204,113,.3)} }
+        .badge-online  { display:inline-flex; align-items:center; background:rgba(46,204,113,.12); color:#2ecc71; border:1px solid rgba(46,204,113,.3); padding:2px 9px; border-radius:12px; font-size:11px; font-weight:700; white-space:nowrap; }
+        .badge-offline { display:inline-flex; align-items:center; background:rgba(255,255,255,.03); color:#444;    border:1px solid #252525; padding:2px 9px; border-radius:12px; font-size:11px; font-weight:700; white-space:nowrap; }
+        .presence-time { font-size:10px; color:#555; margin-top:2px; }
+        .presence-dur  { font-size:11px; color:#888; font-family:monospace; }
+
         #stats-bar { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
         .stat-card { background: #1e1e1e; border: 1px solid #2e2e2e; border-radius: 10px; padding: 16px 22px; flex: 1; min-width: 130px; }
         .stat-val  { font-size: 28px; font-weight: 900; color: #e50914; }
@@ -418,6 +427,7 @@
         <div class="stat-card"><div class="stat-val" id="st-total">—</div><div class="stat-lbl">Abonnés total</div></div>
         <div class="stat-card"><div class="stat-val" id="st-active">—</div><div class="stat-lbl">Actifs</div></div>
         <div class="stat-card"><div class="stat-val" id="st-vie">—</div><div class="stat-lbl">À vie</div></div>
+        <div class="stat-card" style="border-color:rgba(46,204,113,.25);"><div class="stat-val" id="st-online" style="color:#2ecc71;">—</div><div class="stat-lbl" style="display:flex;align-items:center;gap:5px;"><span class="dot-online" style="margin:0;"></span>En ligne</div></div>
         <div class="stat-card"><div class="stat-val" id="st-sources">—</div><div class="stat-lbl">Sources M3U</div></div>
         <div class="stat-card"><div class="stat-val" id="st-chaines">—</div><div class="stat-lbl">Chaînes directes</div></div>
     </div>
@@ -456,7 +466,7 @@
             <button onclick="addUser()"><i class="fas fa-plus"></i> CRÉER & PDF</button>
         </div>
         <table>
-            <thead><tr><th>CLÉ</th><th>DURÉE</th><th>ÉCRANS</th><th>APPAREILS</th><th>DATE</th><th>MESSAGE</th><th>PARRAIN</th><th>ACTIONS</th></tr></thead>
+            <thead><tr><th>CLÉ</th><th>DURÉE</th><th>ÉCRANS</th><th>APPAREILS</th><th>DATE</th><th>MESSAGE</th><th>PARRAIN</th><th>EN LIGNE</th><th>DERNIÈRE VUE</th><th>DURÉE TOTALE</th><th>ACTIONS</th></tr></thead>
             <tbody id="users-body"></tbody>
         </table>
     </div>
@@ -1114,6 +1124,7 @@ function adminLogin() {
         document.getElementById('login-overlay').style.display = 'none';
         document.getElementById('dashboard').style.display     = 'block';
         loadData();
+        _startPresenceRefresh();
     } else {
         errEl.innerText = '❌ Mot de passe incorrect';
         document.getElementById('admin-pass').style.borderColor = 'red';
@@ -1147,7 +1158,8 @@ async function loadData() {
             sbGet('sources', 'select=*&order=id.asc'),
             sbGet('chaines', 'select=*&order=nom.asc'),
             sbGet('config', 'id=eq.1&select=maintenance,message_accueil'),
-            sbGet('codes_parrainage', 'select=code,used_by')
+            sbGet('codes_parrainage', 'select=code,used_by'),
+            sbGet('presence', 'select=cle,last_seen,total_secondes')
         ]);
         // ✅ Promise.allSettled : même si une requête échoue, les autres continuent
         globalUsers   = (results[0].status === 'fulfilled' ? results[0].value : null) || [];
@@ -1162,6 +1174,23 @@ async function loadData() {
                 parrainMap[c.used_by.trim()] = c.code;
             }
         });
+        var presenceRows = (results[5].status === 'fulfilled' ? results[5].value : null) || [];
+        var presenceMap = {};
+        var nowTs = Date.now();
+        var onlineCount = 0;
+        presenceRows.forEach(function(p) {
+            var isOnline = false;
+            if (p.last_seen) {
+                var lastSeenDate = new Date(p.last_seen);
+                var diff = nowTs - lastSeenDate.getTime();
+                // Ignorer les dates epoch (< 2020) ou plus vieilles que 75s
+                isOnline = lastSeenDate.getFullYear() >= 2020 && diff < 75 * 1000;
+            }
+            if (isOnline) onlineCount++;
+            presenceMap[p.cle] = { last_seen: p.last_seen, total_secondes: p.total_secondes || 0, online: isOnline };
+        });
+        var stOnlineEl = document.getElementById('st-online');
+        if (stOnlineEl) stOnlineEl.innerText = onlineCount;
 
         // STATS
         var total  = globalUsers.length;
@@ -1215,6 +1244,19 @@ async function loadData() {
             var cle      = esc(u.cle);
             var msg      = esc(u.message || '');
             var scr      = u.max_ecrans || 1;
+            var pres     = presenceMap[u.cle] || null;
+            var onlineBadge, derniereVue, dureeTotale;
+            if (pres) {
+                onlineBadge = pres.online
+                    ? '<span class="badge-online"><span class="dot-online"></span>EN LIGNE</span>'
+                    : '<span class="badge-offline"><span class="dot-offline"></span>HORS LIGNE</span>';
+                derniereVue = pres.last_seen ? _presRelTime(new Date(pres.last_seen)) : '—';
+                dureeTotale = _presFmtDur(pres.total_secondes);
+            } else {
+                onlineBadge  = '<span class="badge-offline"><span class="dot-offline"></span>HORS LIGNE</span>';
+                derniereVue  = '<span style="color:#333;">Jamais</span>';
+                dureeTotale  = '<span style="color:#333;">—</span>';
+            }
             var tr = document.createElement('tr');
             tr.innerHTML =
                 '<td style="font-weight:700;color:white;font-family:monospace;letter-spacing:1px;">' + cle + '</td>' +
@@ -1224,6 +1266,9 @@ async function loadData() {
                 '<td style="color:#555;font-size:11px;">' + (u.date_activation || '—') + '</td>' +
                 '<td style="color:#aaa;font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + msg + '">' + (msg || '—') + '</td>' +
                 '<td style="font-family:monospace;font-size:11px;font-weight:700;color:#f39c12;">' + (parrainMap[u.cle] ? esc(parrainMap[u.cle]) : '<span style="color:#333;">—</span>') + '</td>' +
+                '<td>' + onlineBadge + '</td>' +
+                '<td><span class="presence-time">' + derniereVue + '</span></td>' +
+                '<td><span class="presence-dur">' + dureeTotale + '</span></td>' +
                 '<td style="white-space:nowrap;">' +
                     '<button class="action-btn btn-pdf"  onclick="generatePDF(\'' + cle + '\',\'' + u.duree + '\',\'' + scr + '\')" title="PDF"><i class="fas fa-file-pdf"></i></button> ' +
                     '<button class="action-btn btn-edit" onclick="editUser(\'' + cle + '\',\'' + u.duree + '\',\'' + scr + '\',\'' + msg + '\')" title="Modifier"><i class="fas fa-edit"></i></button> ' +
@@ -1274,6 +1319,47 @@ async function loadData() {
 
 // XSS safety
 function esc(s) { var s2=String(s||''); s2=s2.replace(/"/g,'&quot;'); s2=s2.replace(/\x3C/g,'&lt;'); s2=s2.replace(/\x3E/g,'&gt;'); return s2; }
+
+// =====================================================
+// PRÉSENCE — HELPERS
+// =====================================================
+function _presRelTime(date) {
+    // Garde contre les dates epoch (1970) ou invalides
+    if (!date || date.getFullYear() < 2020) return '—';
+    var diffMs  = Date.now() - date.getTime();
+    if (diffMs < 0) return '—';
+    var diffSec = Math.floor(diffMs / 1000);
+    if (diffSec < 60)  return 'il y a ' + diffSec + 's';
+    var diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60)  return 'il y a ' + diffMin + ' min';
+    var diffH   = Math.floor(diffMin / 60);
+    if (diffH < 24)    return 'il y a ' + diffH + 'h' + (diffMin % 60 ? ' ' + (diffMin % 60) + 'min' : '');
+    var diffD   = Math.floor(diffH / 24);
+    if (diffD > 365)   return '—';
+    return 'il y a ' + diffD + 'j';
+}
+
+function _presFmtDur(sec) {
+    if (!sec || sec <= 0) return '—';
+    var h   = Math.floor(sec / 3600);
+    var m   = Math.floor((sec % 3600) / 60);
+    var s   = sec % 60;
+    if (h > 0)  return h + 'h ' + (m > 0 ? m + 'min' : '');
+    if (m > 0)  return m + 'min ' + (s > 0 ? s + 's' : '');
+    return s + 's';
+}
+
+// Auto-refresh présence toutes les 30 secondes
+var _presRefreshTimer = null;
+function _startPresenceRefresh() {
+    if (_presRefreshTimer) return;
+    _presRefreshTimer = setInterval(function() {
+        var usersSection = document.getElementById('users-section');
+        if (usersSection && usersSection.classList.contains('active')) {
+            loadData();
+        }
+    }, 30000);
+}
 
 // =====================================================
 // UTILISATEURS
